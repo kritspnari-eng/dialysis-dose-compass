@@ -161,9 +161,23 @@ export function placeDoses(
 
 /* ------------------------------------------------------- Dose selection */
 
-const VIAL_DOSES = [
-  ...new Set(DOSING_LOOKUP.filter((r) => r.Dosage_Form === "Vial").map((r) => r.Target_Weekly_IU)),
-].sort((a, b) => a - b);
+/**
+ * Vials used in weeks 1–4 for each deliverable Vial weekly dose. Vials are never split:
+ * every injection is one full vial, and odd/even weeks alternate to hit the weekly average.
+ */
+export const VIAL_WEEK_PLANS: Record<number, readonly [number, number, number, number]> = {
+  2000: [1, 0, 1, 0],
+  3000: [1, 1, 1, 0],
+  4000: [1, 1, 1, 1],
+  6000: [2, 1, 2, 1],
+  8000: [2, 2, 2, 2],
+  10000: [3, 2, 3, 2],
+  12000: [3, 3, 3, 3],
+};
+
+const VIAL_DOSES = Object.keys(VIAL_WEEK_PLANS)
+  .map(Number)
+  .sort((a, b) => a - b);
 
 type Rounding = "up" | "down" | "nearest";
 
@@ -322,16 +336,42 @@ export interface MonthRow {
   note: string;
 }
 
-export interface Plan {
-  row: DosingRow;
-  regimen: ParsedRegimen;
+/** A group of weeks (e.g. weeks 1 & 3) that share the same injection schedule. */
+export interface WeekVariant {
+  weeks: number[];
+  label: string;
   schedule: WeekSchedule;
-  leftoverNote?: string | undefined;
+  dose: number;
+  units: number;
+}
+
+export interface Plan {
+  variants: WeekVariant[];
+  /** True when the weeks of the month do not all get the same injections. */
+  alternating: boolean;
+  regimenText: string;
+  alternative?: string | undefined;
+  avgWeeklyUnits: number;
   months: MonthRow[];
   monthTotal: { dose: number; units: number; note: string };
 }
 
-const round2 = (n: number) => Math.round(n * 100) / 100;
+/** Which dialysis-day slots receive a full vial, by number of vials that week. */
+const VIAL_SLOTS: Record<DialysisFreq, Record<number, number[]>> = {
+  "2 ครั้ง/wk": { 0: [], 1: [0], 2: [0, 1] },
+  "3 ครั้ง/wk": { 0: [], 1: [0], 2: [0, 2], 3: [0, 1, 2] },
+};
+
+const emptySchedule = () => Object.fromEntries(WEEK_DAYS.map((d) => [d, null])) as WeekSchedule;
+
+export function weekGroupLabel(weeks: number[]): string {
+  const k = weeks.join(",");
+  if (k === "1,2,3,4") return "ทุกสัปดาห์ (สัปดาห์ที่ 1–4)";
+  if (k === "1,3") return "สัปดาห์ที่ 1 และ 3 (สัปดาห์คี่)";
+  if (k === "2,4") return "สัปดาห์ที่ 2 และ 4 (สัปดาห์คู่)";
+  if (weeks.length === 1) return `สัปดาห์ที่ ${weeks[0]}`;
+  return `สัปดาห์ที่ ${weeks.slice(0, -1).join(", ")} และ ${weeks[weeks.length - 1]}`;
+}
 
 export function buildPlan(
   dose: number,
@@ -339,39 +379,76 @@ export function buildPlan(
   freq: DialysisFreq,
   pattern: DialysisPattern,
 ): Plan | null {
-  const row = findDosing(dose, drug.Dosage_Form, freq);
-  if (!row) return null;
-  const regimen = parseRegimen(row.Suggested_Regimen);
-  const schedule = placeDoses(regimen.doses, freq, pattern);
-  const units = row.Vials_Per_Week;
   const unit = unitName(drug.Dosage_Form);
-  const opened = Math.ceil(units - 1e-9);
-  const leftover = round2(opened - units);
+  let weekly: { schedule: WeekSchedule; dose: number; units: number }[];
+  let alternative: string | undefined;
+  let sourceRegimen: string | undefined;
 
-  const leftoverNote =
-    regimen.leftoverNote ??
-    (drug.Dosage_Form === "Vial" && leftover > 0 ? `เหลือยา ${fmt(leftover)} vial` : undefined);
+  if (drug.Dosage_Form === "Vial") {
+    const vials = VIAL_WEEK_PLANS[dose];
+    if (!vials || Math.max(...vials) > freqCount(freq)) return null;
+    weekly = vials.map((n) => {
+      const schedule = emptySchedule();
+      for (const slot of VIAL_SLOTS[freq][n] ?? []) {
+        const day = pattern.days[slot];
+        if (day) schedule[day] = drug.Strength_IU;
+      }
+      return { schedule, dose: n * drug.Strength_IU, units: n };
+    });
+  } else {
+    const row = findDosing(dose, drug.Dosage_Form, freq);
+    if (!row) return null;
+    const regimen = parseRegimen(row.Suggested_Regimen);
+    const schedule = placeDoses(regimen.doses, freq, pattern);
+    weekly = [1, 2, 3, 4].map(() => ({ schedule, dose, units: row.Vials_Per_Week }));
+    alternative = regimen.alternative;
+    sourceRegimen = row.Suggested_Regimen;
+  }
 
-  const weekNote =
-    drug.Dosage_Form === "PFS"
-      ? `ใช้ ${fmt(units)} เข็ม (เข็มละ ${fmt(drug.Strength_IU)} IU)`
-      : leftover > 0
-        ? `เปิด ${opened} ขวด · เหลือยา ${fmt(leftover)} vial`
-        : `เปิด ${opened} ขวด · ใช้หมดพอดี`;
+  const variants: WeekVariant[] = [];
+  weekly.forEach((w, i) => {
+    const same = variants.find((v) => v.units === w.units && v.dose === w.dose);
+    if (same) same.weeks.push(i + 1);
+    else variants.push({ ...w, weeks: [i + 1], label: "" });
+  });
+  for (const v of variants) v.label = weekGroupLabel(v.weeks);
 
-  const months = [1, 2, 3, 4].map((week) => ({ week, dose, units, note: weekNote }));
-  const monthUnits = round2(units * 4);
-  const monthNote =
-    drug.Dosage_Form === "Vial" && leftover > 0
-      ? `เบิก ${fmt(monthUnits)} ${unit} (หากไม่ใช้เศษข้ามสัปดาห์ ต้องเปิด ${opened * 4} ${unit})`
-      : `เบิก ${fmt(monthUnits)} ${unit}`;
+  const injectionDays = (s: WeekSchedule) =>
+    pattern.days.filter((d) => s[d]).map((d) => DAY_LABEL[d]).join(" - ");
+  const regimenText =
+    sourceRegimen ??
+    variants
+      .map(
+        (v) =>
+          `${v.label}: ${
+            v.units
+              ? `ฉีด ${fmtIU(drug.Strength_IU)} x ${v.units} ครั้ง (${injectionDays(v.schedule)})`
+              : "งดฉีด"
+          }`,
+      )
+      .join(" · ");
+
+  const months = weekly.map((w, i) => ({
+    week: i + 1,
+    dose: w.dose,
+    units: w.units,
+    note:
+      drug.Dosage_Form === "PFS"
+        ? `ใช้ ${fmt(w.units)} เข็ม (เข็มละ ${fmt(drug.Strength_IU)} IU)`
+        : w.units > 0
+          ? `เปิด ${w.units} ขวด · ฉีดครั้งละ ${fmt(drug.Strength_IU)} IU เต็มขวด`
+          : "งดฉีด · ไม่ต้องเปิดขวด",
+  }));
+  const monthUnits = months.reduce((a, m) => a + m.units, 0);
+  const monthDose = months.reduce((a, m) => a + m.dose, 0);
 
   return {
-    row,
-    regimen,
-    schedule,
-    leftoverNote,
+    variants,
+    alternating: variants.length > 1,
+    regimenText,
+    alternative,
+    avgWeeklyUnits: monthUnits / 4,
     months,
-    monthTotal: { dose: dose * 4, units: monthUnits, note: monthNote },
+    monthTotal: { dose: monthDose, units: monthUnits, note: `เบิก ${fmt(monthUnits)} ${unit}` },
   };
 }
