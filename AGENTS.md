@@ -28,3 +28,9 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+
+- ESA reference data (drugs, dosing lookup, sample cases) lives as typed constants in `src/lib/esa/data.ts`, transcribed from the user's CSVs; update it there when the CSVs change — no backend needed for static reference tables.
+- All clinical/cost rules are pure functions in `src/lib/esa/calc.ts` with tests in `calc.test.ts`; UI components only render their output, so rules stay testable.
+- Weekly schedules are derived by parsing `Suggested_Regimen` and mapping each dose to the same slot (1st/2nd/3rd dialysis day) in the selected day pattern, since CSV regimens are written for Mon-Thu / Mon-Wed-Fri only.
