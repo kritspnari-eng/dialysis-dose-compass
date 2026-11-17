@@ -3,6 +3,7 @@ import { CalendarDays, Info } from "lucide-react";
 import { Segmented } from "@/components/esa/Segmented";
 import {
   DAY_LABEL,
+  DAY_SHORT,
   DIALYSIS_PATTERNS,
   WEEK_DAYS,
   fmt,
@@ -58,8 +59,8 @@ export function WeeklyScheduleTable({
 
   return (
     <div className="space-y-3">
-      <div className="-mx-1 overflow-x-auto px-1 pb-1">
-        <table className="w-full min-w-[640px] table-fixed border-separate border-spacing-1.5">
+      <div className="-mx-1 px-1 pb-1">
+        <table className="w-full table-fixed border-separate border-spacing-0.5 sm:border-spacing-1.5">
           <thead>
             <tr>
               {WEEK_DAYS.map((d) => {
@@ -69,24 +70,29 @@ export function WeeklyScheduleTable({
                     key={d}
                     scope="col"
                     className={cn(
-                      "rounded-md px-1 py-2 text-center text-sm font-semibold",
+                      "rounded-md px-0.5 py-2 text-center text-xs font-semibold sm:text-sm",
                       dialysis ? "text-primary" : "text-rest-foreground",
                     )}
                   >
-                    {DAY_LABEL[d]}
+                    <span className="sm:hidden">{DAY_SHORT[d]}</span>
+                    <span className="hidden sm:inline">{DAY_LABEL[d]}</span>
                     <span
                       className={cn(
                         "mt-0.5 block text-[10px] font-medium",
                         dialysis ? "text-sky-foreground" : "invisible",
                       )}
                     >
-                      ● วันฟอกเลือด
+                      ●<span className="hidden sm:inline"> วันฟอกเลือด</span>
                     </span>
                   </th>
                 );
               })}
-              <th scope="col" className="rounded-md bg-sky px-1 py-2 text-center text-sm font-semibold text-sky-foreground">
-                รวม/สัปดาห์
+              <th
+                scope="col"
+                className="rounded-md bg-sky px-0.5 py-2 text-center text-xs font-semibold text-sky-foreground sm:text-sm"
+              >
+                <span className="sm:hidden">รวม</span>
+                <span className="hidden sm:inline">รวม/สัปดาห์</span>
               </th>
             </tr>
           </thead>
@@ -99,28 +105,28 @@ export function WeeklyScheduleTable({
                   return (
                     <td
                       key={d}
-                      className="h-28 rounded-xl border border-mint-border bg-mint text-center align-middle text-mint-foreground"
+                      className="h-24 rounded-lg sm:h-28 sm:rounded-xl border border-mint-border bg-mint text-center align-middle text-mint-foreground"
                     >
-                      <div className="font-num text-2xl font-bold leading-none xl:text-[1.7rem]">{fmt(iu)}</div>
-                      <div className="mt-1 text-xs font-semibold">IU</div>
-                      <div className="mt-1.5 text-[11px] opacity-80">{perInjection(iu)}</div>
+                      <div className="font-num text-[0.8rem] font-bold leading-none min-[420px]:text-base sm:text-2xl lg:text-xl xl:text-2xl 2xl:text-[1.7rem]">{fmt(iu)}</div>
+                      <div className="mt-1 text-[10px] font-semibold sm:text-xs">IU</div>
+                      <div className="mt-1.5 text-[10px] leading-tight opacity-80 sm:text-[11px]">{perInjection(iu)}</div>
                     </td>
                   );
                 }
                 return (
                   <td
                     key={d}
-                    className="h-28 rounded-xl border border-dashed bg-rest text-center align-middle text-rest-foreground"
+                    className="h-24 rounded-lg sm:h-28 sm:rounded-xl border border-dashed bg-rest text-center align-middle text-rest-foreground"
                   >
-                    <div className="text-lg font-medium">{dialysis ? "งด" : "-"}</div>
-                    {dialysis && <div className="mt-1 text-[11px]">ฟอกเลือด ไม่ฉีดยา</div>}
+                    <div className="text-sm font-medium sm:text-lg">{dialysis ? "งด" : "-"}</div>
+                    {dialysis && <div className="mt-1 hidden text-[11px] sm:block">ฟอกเลือด ไม่ฉีดยา</div>}
                   </td>
                 );
               })}
-              <td className="h-28 rounded-xl bg-primary text-center align-middle text-primary-foreground shadow-card">
-                <div className="font-num text-2xl font-bold leading-none xl:text-[1.7rem]">{fmt(dose)}</div>
-                <div className="mt-1 text-xs font-semibold">IU</div>
-                <div className="mt-1.5 text-[11px] opacity-85">
+              <td className="h-24 rounded-lg sm:h-28 sm:rounded-xl bg-primary text-center align-middle text-primary-foreground shadow-card">
+                <div className="font-num text-[0.8rem] font-bold leading-none min-[420px]:text-base sm:text-2xl lg:text-xl xl:text-2xl 2xl:text-[1.7rem]">{fmt(dose)}</div>
+                <div className="mt-1 text-[10px] font-semibold sm:text-xs">IU</div>
+                <div className="mt-1.5 text-[10px] leading-tight opacity-85 sm:text-[11px]">
                   {fmt(plan.row.Vials_Per_Week)} {unit}
                 </div>
               </td>
@@ -139,7 +145,6 @@ export function WeeklyScheduleTable({
         <span className="inline-flex items-center gap-1">
           <CalendarDays className="size-3.5" /> สูตรอ้างอิง: {plan.row.Suggested_Regimen}
         </span>
-        {plan.regimen.remark && <span>· {plan.regimen.remark}</span>}
         {plan.regimen.alternative && <span>· ทางเลือก: {plan.regimen.alternative}</span>}
       </div>
     </div>

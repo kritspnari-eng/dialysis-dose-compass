@@ -20,6 +20,14 @@ export const DAY_LABEL: Record<Day, string> = {
   fri: "ศุกร์",
   sat: "เสาร์",
 };
+export const DAY_SHORT: Record<Day, string> = {
+  mon: "จ.",
+  tue: "อ.",
+  wed: "พ.",
+  thu: "พฤ.",
+  fri: "ศ.",
+  sat: "ส.",
+};
 const DAY_BY_NAME: Record<string, Day> = Object.fromEntries(
   Object.entries(DAY_LABEL).map(([k, v]) => [v, k as Day]),
 );

@@ -120,8 +120,8 @@ function Index() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1440px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start">
-        <div className="lg:sticky lg:top-6">
+      <main className="mx-auto grid max-w-[1440px] grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start">
+        <div className="min-w-0 lg:sticky lg:top-6">
           <PatientForm
             form={form}
             setForm={setForm}
@@ -135,6 +135,7 @@ function Index() {
           />
         </div>
 
+        <div className="min-w-0">
         {input && result ? (
           <ResultsPanel
             input={input}
@@ -153,6 +154,7 @@ function Index() {
         ) : (
           <EmptyResults />
         )}
+        </div>
       </main>
 
       <footer className="mx-auto max-w-[1440px] px-4 pb-8 text-xs text-muted-foreground sm:px-6">
