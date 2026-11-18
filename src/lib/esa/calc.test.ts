@@ -76,17 +76,53 @@ describe("doses follow the selected dialysis days", () => {
     expect(s.fri).toBe(2000);
     expect(s.mon).toBeNull();
   });
-  it("3x/week Tue-Thu-Sat keeps 4,000 / 2,000 / 2,000 order", () => {
+  it("3x/week Tue-Thu-Sat with 2 vials injects Tue and Sat, 4,000 IU each", () => {
     const plan = buildPlan(8000, drug("EPO-02"), "3 ครั้ง/wk", pattern("3 ครั้ง/wk", "tue-thu-sat"))!;
-    expect([plan.schedule.tue, plan.schedule.thu, plan.schedule.sat]).toEqual([4000, 2000, 2000]);
+    const s = plan.variants[0]!.schedule;
+    expect([s.tue, s.thu, s.sat]).toEqual([4000, null, 4000]);
   });
-  it("keeps the leftover vial note", () => {
-    const plan = buildPlan(2000, drug("EPO-01"), "2 ครั้ง/wk", pattern("2 ครั้ง/wk", "wed-sat"))!;
-    expect(plan.schedule.wed).toBe(2000);
-    expect(plan.leftoverNote).toBe("เหลือยา 0.5 vial");
+});
+
+describe("Vial 4,000 IU: whole vials only, alternating odd/even weeks", () => {
+  const vialUnits = (dose: number, freq: "2 ครั้ง/wk" | "3 ครั้ง/wk" = "3 ครั้ง/wk") => {
+    const p = freq === "2 ครั้ง/wk" ? pattern(freq, "mon-thu") : pattern(freq, "mon-wed-fri");
+    return buildPlan(dose, drug("EPO-01"), freq, p)!.months.map((m) => m.units);
+  };
+
+  it("2,000 IU: weeks 1 & 3 one vial, weeks 2 & 4 none", () => {
+    expect(vialUnits(2000)).toEqual([1, 0, 1, 0]);
   });
-  it("monthly total is weekly × 4", () => {
+  it("3,000 IU: weeks 1–3 one vial, week 4 none", () => {
+    expect(vialUnits(3000)).toEqual([1, 1, 1, 0]);
+  });
+  it("6,000 IU: weeks 1 & 3 two vials, weeks 2 & 4 one vial, 6 vials/month", () => {
     const plan = buildPlan(6000, drug("EPO-01"), "2 ครั้ง/wk", pattern("2 ครั้ง/wk", "mon-thu"))!;
+    expect(plan.months.map((m) => m.units)).toEqual([2, 1, 2, 1]);
     expect(plan.monthTotal).toMatchObject({ dose: 24000, units: 6 });
+    const [odd, even] = plan.variants;
+    expect(odd!.label).toBe("สัปดาห์ที่ 1 และ 3 (สัปดาห์คี่)");
+    expect([odd!.schedule.mon, odd!.schedule.thu]).toEqual([4000, 4000]);
+    expect(even!.label).toBe("สัปดาห์ที่ 2 และ 4 (สัปดาห์คู่)");
+    expect([even!.schedule.mon, even!.schedule.thu]).toEqual([4000, null]);
+  });
+  it("10,000 IU: weeks 1 & 3 three vials, weeks 2 & 4 two vials", () => {
+    expect(vialUnits(10000)).toEqual([3, 2, 3, 2]);
+  });
+  it("4,000 / 8,000 / 12,000 IU are the same every week", () => {
+    expect(vialUnits(4000)).toEqual([1, 1, 1, 1]);
+    expect(vialUnits(8000)).toEqual([2, 2, 2, 2]);
+    expect(vialUnits(12000)).toEqual([3, 3, 3, 3]);
+    expect(buildPlan(8000, drug("EPO-01"), "3 ครั้ง/wk", pattern("3 ครั้ง/wk", "mon-wed-fri"))!.alternating).toBe(false);
+  });
+  it("never injects a partial vial (no 1,000 or 2,000 IU injections)", () => {
+    for (const dose of [2000, 3000, 4000, 6000, 8000, 10000, 12000]) {
+      const plan = buildPlan(dose, drug("EPO-01"), "3 ครั้ง/wk", pattern("3 ครั้ง/wk", "mon-wed-fri"))!;
+      for (const v of plan.variants)
+        for (const iu of Object.values(v.schedule)) expect(iu === null || iu === 4000).toBe(true);
+    }
+  });
+  it("copay per month uses the actual vials used (6,000 IU EPIAO UC = 6 × 86)", () => {
+    const plan = buildPlan(6000, drug("EPO-01"), "2 ครั้ง/wk", pattern("2 ครั้ง/wk", "mon-thu"))!;
+    expect(costSummary(drug("EPO-01"), "UC", plan.avgWeeklyUnits).month.copay).toBe(516);
   });
 });

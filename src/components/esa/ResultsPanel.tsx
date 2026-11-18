@@ -64,7 +64,7 @@ export function EmptyResults() {
         </div>
         <h2 className="text-xl font-semibold">แผนการให้ยาจะแสดงที่นี่</h2>
         <p className="text-sm text-muted-foreground">
-          กรอกข้อมูลผู้ป่วย หรือกดโหลดเคสตัวอย่าง แล้วกด “คำนวณแผนการให้ยา”
+          กรอกข้อมูลผู้ป่วย แล้วกด “คำนวณแผนการให้ยา”
         </p>
       </div>
     </div>
@@ -115,7 +115,9 @@ export function ResultsPanel({
       <section className="panel overflow-hidden">
         <div className="grid gap-5 p-5 sm:grid-cols-[1fr_auto] sm:items-end sm:p-6">
           <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">ขนาดยาที่แนะนำต่อสัปดาห์</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              ขนาดยาที่แนะนำต่อสัปดาห์{plan?.alternating ? " (เฉลี่ย · ฉีดสลับสัปดาห์)" : ""}
+            </p>
             <p className="font-num text-5xl font-bold leading-none text-primary sm:text-6xl">
               {fmt(dose)}
               <span className="ml-2 text-xl font-semibold text-muted-foreground">IU/wk</span>
@@ -210,7 +212,9 @@ export function ResultsPanel({
               <thead className="bg-muted text-xs text-muted-foreground">
                 <tr>
                   <th scope="col" className="px-4 py-3 text-left font-semibold">รายการ</th>
-                  <th scope="col" className="px-4 py-3 text-right font-semibold">ต่อสัปดาห์</th>
+                  <th scope="col" className="px-4 py-3 text-right font-semibold">
+                    {plan?.alternating ? "ต่อสัปดาห์ (เฉลี่ย)" : "ต่อสัปดาห์"}
+                  </th>
                   <th scope="col" className="px-4 py-3 text-right font-semibold">ต่อเดือน</th>
                 </tr>
               </thead>

@@ -1,4 +1,5 @@
-import { CalendarDays, Info } from "lucide-react";
+import { CalendarDays, Repeat } from "lucide-react";
+import { Fragment } from "react";
 
 import { Segmented } from "@/components/esa/Segmented";
 import {
@@ -40,6 +41,10 @@ export function PatternPicker({
   );
 }
 
+const CELL = "h-24 rounded-lg sm:h-28 sm:rounded-xl text-center align-middle";
+const BIG_NUM =
+  "font-num text-[0.8rem] font-bold leading-none min-[420px]:text-base sm:text-2xl lg:text-xl xl:text-2xl 2xl:text-[1.7rem]";
+
 export function WeeklyScheduleTable({
   plan,
   pattern,
@@ -52,13 +57,20 @@ export function WeeklyScheduleTable({
   dose: number;
 }) {
   const unit = unitName(drug.Dosage_Form);
-  const perInjection = (iu: number) => {
-    const n = Math.round((iu / drug.Strength_IU) * 100) / 100;
-    return `${fmt(n)} ${unit}`;
-  };
+  const perInjection = (iu: number) => `${fmt(Math.round((iu / drug.Strength_IU) * 100) / 100)} ${unit}`;
 
   return (
     <div className="space-y-3">
+      {plan.alternating && (
+        <div className="flex items-start gap-2 rounded-lg border border-mint-border bg-mint px-3 py-2.5 text-sm text-mint-foreground">
+          <Repeat className="mt-0.5 size-4 shrink-0" />
+          <p>
+            <strong>ฉีดสลับสัปดาห์</strong> ใช้ยาเต็มขวดครั้งละ {fmt(drug.Strength_IU)} IU ไม่แบ่งครึ่งขวด ·
+            เฉลี่ย <span className="font-num font-semibold">{fmt(dose)}</span> IU/สัปดาห์
+          </p>
+        </div>
+      )}
+
       <div className="-mx-1 px-1 pb-1">
         <table className="w-full table-fixed border-separate border-spacing-0.5 sm:border-spacing-1.5">
           <thead>
@@ -97,55 +109,67 @@ export function WeeklyScheduleTable({
             </tr>
           </thead>
           <tbody>
-            <tr>
-              {WEEK_DAYS.map((d) => {
-                const iu = plan.schedule[d];
-                const dialysis = pattern.days.includes(d);
-                if (iu) {
-                  return (
-                    <td
-                      key={d}
-                      className="h-24 rounded-lg sm:h-28 sm:rounded-xl border border-mint-border bg-mint text-center align-middle text-mint-foreground"
+            {plan.variants.map((v, vi) => (
+              <Fragment key={v.label}>
+                {plan.alternating && (
+                  <tr>
+                    <th
+                      colSpan={WEEK_DAYS.length + 1}
+                      scope="rowgroup"
+                      className={cn("px-1 pb-0.5 text-left", vi > 0 && "pt-3")}
                     >
-                      <div className="font-num text-[0.8rem] font-bold leading-none min-[420px]:text-base sm:text-2xl lg:text-xl xl:text-2xl 2xl:text-[1.7rem]">{fmt(iu)}</div>
-                      <div className="mt-1 text-[10px] font-semibold sm:text-xs">IU</div>
-                      <div className="mt-1.5 text-[10px] leading-tight opacity-80 sm:text-[11px]">{perInjection(iu)}</div>
-                    </td>
-                  );
-                }
-                return (
-                  <td
-                    key={d}
-                    className="h-24 rounded-lg sm:h-28 sm:rounded-xl border border-dashed bg-rest text-center align-middle text-rest-foreground"
-                  >
-                    <div className="text-sm font-medium sm:text-lg">{dialysis ? "งด" : "-"}</div>
-                    {dialysis && <div className="mt-1 hidden text-[11px] sm:block">ฟอกเลือด ไม่ฉีดยา</div>}
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold sm:text-sm",
+                          vi === 0 ? "bg-primary text-primary-foreground" : "bg-sky text-sky-foreground",
+                        )}
+                      >
+                        {v.label}
+                      </span>
+                    </th>
+                  </tr>
+                )}
+                <tr>
+                  {WEEK_DAYS.map((d) => {
+                    const iu = v.schedule[d];
+                    const dialysis = pattern.days.includes(d);
+                    if (iu) {
+                      return (
+                        <td key={d} className={cn(CELL, "border border-mint-border bg-mint text-mint-foreground")}>
+                          <div className={BIG_NUM}>{fmt(iu)}</div>
+                          <div className="mt-1 text-[10px] font-semibold sm:text-xs">IU</div>
+                          <div className="mt-1.5 text-[10px] leading-tight opacity-80 sm:text-[11px]">
+                            {perInjection(iu)}
+                          </div>
+                        </td>
+                      );
+                    }
+                    return (
+                      <td key={d} className={cn(CELL, "border border-dashed bg-rest text-rest-foreground")}>
+                        <div className="text-[11px] font-medium sm:text-base">{dialysis ? "งดฉีด" : "-"}</div>
+                        {dialysis && <div className="mt-1 hidden text-[11px] sm:block">ฟอกเลือดอย่างเดียว</div>}
+                      </td>
+                    );
+                  })}
+                  <td className={cn(CELL, "bg-primary text-primary-foreground shadow-card")}>
+                    <div className={BIG_NUM}>{fmt(v.dose)}</div>
+                    <div className="mt-1 text-[10px] font-semibold sm:text-xs">IU</div>
+                    <div className="mt-1.5 text-[10px] leading-tight opacity-85 sm:text-[11px]">
+                      {fmt(v.units)} {unit}
+                    </div>
                   </td>
-                );
-              })}
-              <td className="h-24 rounded-lg sm:h-28 sm:rounded-xl bg-primary text-center align-middle text-primary-foreground shadow-card">
-                <div className="font-num text-[0.8rem] font-bold leading-none min-[420px]:text-base sm:text-2xl lg:text-xl xl:text-2xl 2xl:text-[1.7rem]">{fmt(dose)}</div>
-                <div className="mt-1 text-[10px] font-semibold sm:text-xs">IU</div>
-                <div className="mt-1.5 text-[10px] leading-tight opacity-85 sm:text-[11px]">
-                  {fmt(plan.row.Vials_Per_Week)} {unit}
-                </div>
-              </td>
-            </tr>
+                </tr>
+              </Fragment>
+            ))}
           </tbody>
         </table>
       </div>
 
-      {plan.leftoverNote && (
-        <div className="flex items-center gap-2 rounded-lg border border-caution-border bg-caution-surface px-3 py-2.5 text-sm font-semibold text-caution-foreground">
-          <Info className="size-4 shrink-0" />*{plan.leftoverNote}*
-        </div>
-      )}
-
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
-          <CalendarDays className="size-3.5" /> สูตรอ้างอิง: {plan.row.Suggested_Regimen}
+        <span className="inline-flex items-start gap-1">
+          <CalendarDays className="mt-px size-3.5 shrink-0" /> สูตร: {plan.regimenText}
         </span>
-        {plan.regimen.alternative && <span>· ทางเลือก: {plan.regimen.alternative}</span>}
+        {plan.alternative && <span>· ทางเลือก: {plan.alternative}</span>}
       </div>
     </div>
   );

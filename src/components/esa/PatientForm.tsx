@@ -1,4 +1,4 @@
-import { AlertTriangle, Calculator, FlaskConical, Pill, UserRound } from "lucide-react";
+import { AlertTriangle, Calculator, FlaskConical, Pill, RotateCcw, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,6 @@ import { eligibility, fmt } from "@/lib/esa/calc";
 import {
   DRUGS,
   RIGHT_LABELS,
-  SAMPLE_CASES,
   type DialysisFreq,
   type PatientInput,
   type PatientRight,
@@ -120,13 +119,13 @@ export function PatientForm({
   form,
   setForm,
   onCalculate,
-  onLoadSample,
+  onReset,
   errors,
 }: {
   form: FormState;
   setForm: (f: FormState) => void;
   onCalculate: () => void;
-  onLoadSample: (i: number) => void;
+  onReset: () => void;
   errors: string[];
 }) {
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm({ ...form, [k]: v });
@@ -141,17 +140,6 @@ export function PatientForm({
         onCalculate();
       }}
     >
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">โหลดเคสตัวอย่าง</p>
-        <div className="flex flex-wrap gap-2">
-          {SAMPLE_CASES.map((c, i) => (
-            <Button key={c.label} type="button" variant="soft" size="sm" onClick={() => onLoadSample(i)}>
-              {c.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
       <Section icon={<UserRound />} title="ข้อมูลทั่วไปและสิทธิการรักษา">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
@@ -301,9 +289,14 @@ export function PatientForm({
         </ul>
       )}
 
-      <Button type="submit" variant="hero" size="xl" className="w-full">
-        <Calculator /> คำนวณแผนการให้ยา
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" variant="hero" size="xl" className="min-w-0 flex-1 px-3">
+          <Calculator /> คำนวณแผนการให้ยา
+        </Button>
+        <Button type="button" variant="outline" size="xl" className="shrink-0 px-3 sm:px-5" onClick={onReset}>
+          <RotateCcw /> ล้างข้อมูล<span className="hidden sm:inline"> (Reset)</span>
+        </Button>
+      </div>
     </form>
   );
 }

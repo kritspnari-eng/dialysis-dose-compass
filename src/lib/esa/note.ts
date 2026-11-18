@@ -49,15 +49,24 @@ export function buildCopyNote(a: NoteArgs): string {
     L.push(`⚠ ${missingLookupMessage(p.Dialysis_Freq)}`);
   } else {
     L.push(`ตารางฉีดยา (ฟอกเลือด ${p.Dialysis_Freq.replace("/wk", "/สัปดาห์")} · ${patternLabel(pattern, " / ")})`);
-    for (const d of pattern.days) {
-      const iu = plan.schedule[d];
-      L.push(`  - ${DAY_LABEL[d]}: ${iu ? fmtIU(iu) : "งดฉีด"}`);
+    if (plan.alternating) {
+      L.push(
+        `  รูปแบบ: ฉีดสลับสัปดาห์ (สัปดาห์คี่ / สัปดาห์คู่) · ใช้ยาเต็ม${unit}ครั้งละ ${fmtIU(drug.Strength_IU)} ไม่แบ่งครึ่ง${unit}`,
+      );
     }
-    L.push(`  รวม/สัปดาห์: ${fmtIU(dose)} · ใช้ ${fmt(plan.row.Vials_Per_Week)} ${unit}`);
-    if (plan.leftoverNote) L.push(`  หมายเหตุ: *${plan.leftoverNote}*`);
+    for (const v of plan.variants) {
+      L.push(`  ${v.label}: รวม ${fmtIU(v.dose)} · ${fmt(v.units)} ${unit}`);
+      for (const d of pattern.days) {
+        const iu = v.schedule[d];
+        L.push(`    - ${DAY_LABEL[d]}: ${iu ? fmtIU(iu) : "งดฉีด"}`);
+      }
+    }
+    if (plan.alternating) L.push(`  เฉลี่ย: ${fmtIU(dose)}/สัปดาห์`);
     L.push("");
     L.push("สรุปรายเดือน (4 สัปดาห์)");
-    L.push(`  - สัปดาห์ที่ 1–4: ${fmtIU(dose)}/สัปดาห์ · ${fmt(plan.row.Vials_Per_Week)} ${unit}/สัปดาห์`);
+    for (const m of plan.months) {
+      L.push(`  - สัปดาห์ที่ ${m.week}: ${m.units ? `${fmtIU(m.dose)} · ${fmt(m.units)} ${unit}` : `งดฉีด · 0 ${unit}`}`);
+    }
     L.push(`  - รวมทั้งเดือน: ${fmtIU(plan.monthTotal.dose)} · ${fmt(plan.monthTotal.units)} ${unit}`);
     L.push(`  - การเบิก: ${plan.monthTotal.note}`);
   }
@@ -65,7 +74,7 @@ export function buildCopyNote(a: NoteArgs): string {
   if (cost) {
     L.push("");
     L.push(
-      `ค่ายา/เดือน: ราคา รพ. ${fmt(cost.month.total)} บาท · เบิกได้ ${fmt(cost.month.reimbursed)} บาท · ผู้ป่วยชำระเพิ่ม ${fmt(cost.month.copay)} บาท (${fmt(cost.week.copay)} บาท/สัปดาห์)`,
+      `ค่ายา/เดือน: ราคา รพ. ${fmt(cost.month.total)} บาท · เบิกได้ ${fmt(cost.month.reimbursed)} บาท · ผู้ป่วยชำระเพิ่ม ${fmt(cost.month.copay)} บาท (${plan?.alternating ? "เฉลี่ย " : ""}${fmt(cost.week.copay)} บาท/สัปดาห์)`,
     );
     if (!cost.eligible) L.push(`⚠ ยานี้เบิกตามสิทธิ ${p.Patient_Right} ไม่ได้`);
   }

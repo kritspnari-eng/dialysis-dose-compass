@@ -2,12 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Activity } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import {
-  EMPTY_FORM,
-  PatientForm,
-  toFormState,
-  type FormState,
-} from "@/components/esa/PatientForm";
+import { EMPTY_FORM, PatientForm, type FormState } from "@/components/esa/PatientForm";
 import { EmptyResults, ResultsPanel } from "@/components/esa/ResultsPanel";
 import {
   DIALYSIS_PATTERNS,
@@ -17,7 +12,7 @@ import {
   roundToPackage,
   stepDose,
 } from "@/lib/esa/calc";
-import { DRUGS, SAMPLE_CASES, type PatientInput } from "@/lib/esa/data";
+import { DRUGS, type PatientInput } from "@/lib/esa/data";
 import { buildCopyNote } from "@/lib/esa/note";
 
 export const Route = createFileRoute("/")({
@@ -98,7 +93,7 @@ function Index() {
     const patterns = DIALYSIS_PATTERNS[input.Dialysis_Freq];
     const pattern = patterns.find((p) => p.id === patternId) ?? patterns[0]!;
     const plan = buildPlan(dose, drug, input.Dialysis_Freq, pattern);
-    const cost = plan ? costSummary(drug, input.Patient_Right, plan.row.Vials_Per_Week) : null;
+    const cost = plan ? costSummary(drug, input.Patient_Right, plan.avgWeeklyUnits) : null;
     const overridden = override !== null && dose !== rec.dose;
     const note = buildCopyNote({ input, drug, rec, dose, overridden, pattern, plan, cost });
     return { drug, rec, dose, pattern, plan, cost, overridden, note };
@@ -127,10 +122,12 @@ function Index() {
             setForm={setForm}
             errors={errors}
             onCalculate={() => calculate(form)}
-            onLoadSample={(i) => {
-              const f = toFormState(SAMPLE_CASES[i]!.input);
-              setForm(f);
-              calculate(f);
+            onReset={() => {
+              setForm(EMPTY_FORM);
+              setErrors([]);
+              setInput(null);
+              setOverride(null);
+              setPatternId("");
             }}
           />
         </div>
