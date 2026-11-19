@@ -16,6 +16,7 @@ const badgeVariants = cva(
         outline: "text-foreground",
         eligible: "border-mint-border bg-success-surface text-success",
         ineligible: "border-warning-border bg-warning-surface text-warning-foreground",
+        caution: "border-caution-border bg-caution-surface text-caution-foreground",
         mint: "border-transparent bg-mint text-mint-foreground",
         sky: "border-transparent bg-sky text-sky-foreground",
       },

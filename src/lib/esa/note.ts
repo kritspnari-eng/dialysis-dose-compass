@@ -4,7 +4,7 @@ import {
   DAY_LABEL,
   fmt,
   fmtIU,
-  isIronDeficient,
+  ironAssessment,
   missingLookupMessage,
   patternLabel,
   unitName,
@@ -78,8 +78,10 @@ export function buildCopyNote(a: NoteArgs): string {
     );
     if (!cost.eligible) L.push(`⚠ ยานี้เบิกตามสิทธิ ${p.Patient_Right} ไม่ได้`);
   }
-  if (isIronDeficient(p)) {
-    L.push("⚠ พร่องธาตุเหล็ก (TSAT < 20% หรือ Ferritin < 200 ng/mL) พิจารณาให้ธาตุเหล็กเสริม");
-  }
+  const iron = ironAssessment(p);
+  L.push("");
+  L.push(
+    `สถานะธาตุเหล็ก: TSAT ${p.TSAT_Percent}% · Ferritin ${p.Ferritin_ng_mL} ng/mL → ${iron.note}`,
+  );
   return L.join("\n");
 }

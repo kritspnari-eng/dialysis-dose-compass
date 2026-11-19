@@ -5,6 +5,7 @@ import {
   buildPlan,
   costSummary,
   findDosing,
+  ironAssessment,
   missingLookupMessage,
   parseRegimen,
   placeDoses,
@@ -52,6 +53,25 @@ describe("missing Lookup_Key", () => {
     expect(missingLookupMessage("2 ครั้ง/wk")).toBe(
       "ไม่พบรูปแบบการแบ่งฉีดสำหรับความถี่ 2 ครั้ง/สัปดาห์ กรุณาปรับขนาดยาหรือเปลี่ยนรูปแบบยา",
     );
+  });
+});
+
+describe("iron status assessment", () => {
+  it("TSAT < 20 or Ferritin < 200 → deficient (give IV iron)", () => {
+    expect(ironAssessment({ TSAT_Percent: 15, Ferritin_ng_mL: 300 }).status).toBe("deficient");
+    expect(ironAssessment({ TSAT_Percent: 25, Ferritin_ng_mL: 150 }).status).toBe("deficient");
+    expect(ironAssessment({ TSAT_Percent: 15, Ferritin_ng_mL: 150 }).note).toContain("ควรพิจารณาให้ IV Iron");
+  });
+  it("Ferritin > 500 or TSAT > 30 → high (hold IV iron)", () => {
+    expect(ironAssessment({ TSAT_Percent: 25, Ferritin_ng_mL: 600 }).status).toBe("high");
+    expect(ironAssessment({ TSAT_Percent: 35, Ferritin_ng_mL: 300 }).status).toBe("high");
+    expect(ironAssessment({ TSAT_Percent: 35, Ferritin_ng_mL: 600 }).note).toContain("งด IV Iron");
+  });
+  it("TSAT 20–30 and Ferritin 200–500 → adequate (maintenance)", () => {
+    expect(ironAssessment({ TSAT_Percent: 25, Ferritin_ng_mL: 350 }).status).toBe("adequate");
+    expect(ironAssessment({ TSAT_Percent: 20, Ferritin_ng_mL: 200 }).status).toBe("adequate");
+    expect(ironAssessment({ TSAT_Percent: 30, Ferritin_ng_mL: 500 }).status).toBe("adequate");
+    expect(ironAssessment({ TSAT_Percent: 25, Ferritin_ng_mL: 350 }).note).toContain("Maintenance");
   });
 });
 

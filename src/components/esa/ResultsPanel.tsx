@@ -19,10 +19,11 @@ import { PatternPicker, WeeklyScheduleTable } from "@/components/esa/WeeklySched
 import {
   ACTION_LABEL,
   fmt,
-  isIronDeficient,
+  ironAssessment,
   missingLookupMessage,
   type CostSummary,
   type DialysisPattern,
+  type IronStatus,
   type Plan,
   type Recommendation,
 } from "@/lib/esa/calc";
@@ -68,6 +69,39 @@ export function EmptyResults() {
         </p>
       </div>
     </div>
+  );
+}
+
+const IRON_STYLE: Record<IronStatus, { box: string; badge: "ineligible" | "caution" | "eligible" }> = {
+  deficient: {
+    box: "border-warning-border bg-warning-surface text-warning-foreground",
+    badge: "ineligible",
+  },
+  high: {
+    box: "border-caution-border bg-caution-surface text-caution-foreground",
+    badge: "caution",
+  },
+  adequate: {
+    box: "border-success/40 bg-success-surface text-success",
+    badge: "eligible",
+  },
+};
+
+function IronStatusCard({ input }: { input: PatientInput }) {
+  const iron = ironAssessment(input);
+  const style = IRON_STYLE[iron.status];
+  return (
+    <section className={`space-y-2 rounded-xl border p-4 text-sm ${style.box}`}>
+      <div className="flex flex-wrap items-center gap-2">
+        <Droplets className="size-5 shrink-0" />
+        <h2 className="font-semibold">การประเมินสถานะธาตุเหล็ก (Iron Status)</h2>
+        <Badge variant={style.badge}>{iron.title}</Badge>
+      </div>
+      <p>{iron.advice}</p>
+      <p className="text-xs opacity-80">
+        TSAT {input.TSAT_Percent}% · Ferritin {input.Ferritin_ng_mL} ng/mL
+      </p>
+    </section>
   );
 }
 
@@ -155,18 +189,7 @@ export function ResultsPanel({
         </div>
       </section>
 
-      {isIronDeficient(input) && (
-        <div className="flex items-start gap-3 rounded-xl border border-caution-border bg-caution-surface p-4 text-sm text-caution-foreground">
-          <Droplets className="mt-0.5 size-5 shrink-0" />
-          <p>
-            <strong>ผู้ป่วยมีภาวะพร่องธาตุเหล็ก</strong> (TSAT &lt; 20% หรือ Ferritin &lt; 200 ng/mL)
-            ควรพิจารณาให้ธาตุเหล็กเสริมควบคู่กับการปรับยา ESA
-            <span className="mt-1 block text-xs opacity-80">
-              TSAT {input.TSAT_Percent}% · Ferritin {input.Ferritin_ng_mL} ng/mL
-            </span>
-          </p>
-        </div>
-      )}
+      <IronStatusCard input={input} />
 
       {/* Weekly */}
       <Card icon={<CalendarRange />} title="ตารางกระจายการฉีดยารายสัปดาห์">

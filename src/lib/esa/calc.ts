@@ -284,8 +284,54 @@ export const missingLookupMessage = (freq: DialysisFreq) =>
 
 /* ---------------------------------------------------------- Iron status */
 
+export type IronStatus = "deficient" | "high" | "adequate";
+
+export interface IronAssessment {
+  status: IronStatus;
+  title: string;
+  advice: string;
+  /** One-line summary for the copy note. */
+  note: string;
+}
+
+/**
+ * HD iron-status criteria:
+ * - deficient: TSAT < 20% or Ferritin < 200 ng/mL → consider IV iron
+ * - high: Ferritin > 500 ng/mL or TSAT > 30% → hold IV iron
+ * - adequate: TSAT 20–30% and Ferritin 200–500 ng/mL → maintenance per unit protocol
+ */
+export function ironAssessment(
+  p: Pick<PatientInput, "TSAT_Percent" | "Ferritin_ng_mL">,
+): IronAssessment {
+  if (p.TSAT_Percent < 20 || p.Ferritin_ng_mL < 200) {
+    return {
+      status: "deficient",
+      title: "ควรพิจารณาให้ IV Iron เสริม (ภาวะพร่องธาตุเหล็ก)",
+      advice:
+        "TSAT < 20% หรือ Ferritin < 200 ng/mL — การให้ธาตุเหล็กทางหลอดเลือดดำเสริมจะช่วยเพิ่มประสิทธิภาพการตอบสนองต่อยา ESA",
+      note: "พร่องธาตุเหล็ก (TSAT < 20% หรือ Ferritin < 200 ng/mL) → ควรพิจารณาให้ IV Iron เสริม",
+    };
+  }
+  if (p.Ferritin_ng_mL > 500 || p.TSAT_Percent > 30) {
+    return {
+      status: "high",
+      title: "แนะนำให้งดให้ IV Iron ชั่วคราว (ธาตุเหล็กสะสมเพียงพอ/สูง)",
+      advice:
+        "Ferritin > 500 ng/mL หรือ TSAT > 30% — ธาตุเหล็กในร่างกายเพียงพอแล้ว ควรงด IV Iron และติดตามค่าซ้ำตามแนวทางของหน่วย",
+      note: "ธาตุเหล็กสะสมเพียงพอ/สูง (Ferritin > 500 ng/mL หรือ TSAT > 30%) → แนะนำงด IV Iron ชั่วคราว",
+    };
+  }
+  return {
+    status: "adequate",
+    title: "ธาตุเหล็กอยู่ในเกณฑ์เหมาะสม",
+    advice:
+      "TSAT 20–30% และ Ferritin 200–500 ng/mL — พิจารณาให้ IV Iron แบบ Maintenance ตามแนวทางของหน่วย",
+    note: "ธาตุเหล็กอยู่ในเกณฑ์เหมาะสม (TSAT 20–30%, Ferritin 200–500 ng/mL) → พิจารณา IV Iron แบบ Maintenance ตามแนวทางของหน่วย",
+  };
+}
+
 export const isIronDeficient = (p: Pick<PatientInput, "TSAT_Percent" | "Ferritin_ng_mL">) =>
-  p.TSAT_Percent < 20 || p.Ferritin_ng_mL < 200;
+  ironAssessment(p).status === "deficient";
 
 /* ------------------------------------------------------- Eligibility/cost */
 
