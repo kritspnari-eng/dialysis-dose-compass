@@ -28,6 +28,7 @@ import {
   type Recommendation,
 } from "@/lib/esa/calc";
 import type { Drug, PatientInput } from "@/lib/esa/data";
+import { cn } from "@/lib/utils";
 
 function Card({
   icon,
@@ -107,6 +108,26 @@ function IronStatusCard({ input }: { input: PatientInput }) {
         {input.Ferritin_ng_mL === null ? "ไม่มีข้อมูล" : `${fmt(input.Ferritin_ng_mL)} ng/mL`}
       </p>
     </section>
+  );
+}
+
+function LabelCell({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <td className={cn("px-2 py-3 break-words text-[0.8rem] sm:px-4 sm:text-sm", className)}>{children}</td>
+  );
+}
+
+function MoneyCell({ value, className }: { value: number; className?: string }) {
+  return (
+    <td
+      className={cn(
+        "px-2 py-3 text-right font-num whitespace-nowrap text-[0.8rem] sm:px-4 sm:text-sm",
+        className,
+      )}
+    >
+      {fmt(value)}
+      <span className="ml-1 text-[0.72em] font-medium opacity-80">บาท</span>
+    </td>
   );
 }
 
@@ -235,40 +256,49 @@ export function ResultsPanel({
             </Badge>
           }
         >
-          <div className="overflow-x-auto rounded-xl border">
-            <table className="w-full min-w-[420px] text-sm">
+          <div className="rounded-xl border">
+            <table className="w-full table-fixed text-sm">
+              <colgroup>
+                <col className="w-[42%]" />
+                <col className="w-[29%]" />
+                <col className="w-[29%]" />
+              </colgroup>
               <thead className="bg-muted text-xs text-muted-foreground">
                 <tr>
-                  <th scope="col" className="px-4 py-3 text-left font-semibold">รายการ</th>
-                  <th scope="col" className="px-4 py-3 text-right font-semibold">
-                    {plan?.alternating ? "ต่อสัปดาห์ (เฉลี่ย)" : "ต่อสัปดาห์"}
+                  <th scope="col" className="px-2 py-3 text-left font-semibold sm:px-4">
+                    รายการ
                   </th>
-                  <th scope="col" className="px-4 py-3 text-right font-semibold">ต่อเดือน</th>
+                  <th scope="col" className="px-2 py-3 text-right font-semibold sm:px-4">
+                    ต่อสัปดาห์
+                    {plan?.alternating && (
+                      <span className="block text-[10px] font-medium opacity-80">(เฉลี่ย)</span>
+                    )}
+                  </th>
+                  <th scope="col" className="px-2 py-3 text-right font-semibold sm:px-4">
+                    รวม 1 เดือน
+                    <span className="block text-[10px] font-medium opacity-80">(4 สัปดาห์)</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-t">
-                  <td className="px-4 py-3">ค่ายาทั้งหมด (ราคา รพ.)</td>
-                  <td className="px-4 py-3 text-right font-num">{fmt(cost.week.total)}</td>
-                  <td className="px-4 py-3 text-right font-num">{fmt(cost.month.total)}</td>
+                  <LabelCell>ค่ายาทั้งหมด (ราคา รพ.)</LabelCell>
+                  <MoneyCell value={cost.week.total} />
+                  <MoneyCell value={cost.month.total} />
                 </tr>
                 <tr className="border-t">
-                  <td className="px-4 py-3">เบิกตามสิทธิได้</td>
-                  <td className="px-4 py-3 text-right font-num text-success">{fmt(cost.week.reimbursed)}</td>
-                  <td className="px-4 py-3 text-right font-num text-success">{fmt(cost.month.reimbursed)}</td>
+                  <LabelCell>เบิกตามสิทธิได้</LabelCell>
+                  <MoneyCell value={cost.week.reimbursed} className="text-success" />
+                  <MoneyCell value={cost.month.reimbursed} className="text-success" />
                 </tr>
                 <tr className="border-t bg-warning-surface text-warning-foreground">
-                  <td className="px-4 py-3 font-semibold">ผู้ป่วยชำระส่วนต่างเพิ่ม</td>
-                  <td className="px-4 py-3 text-right font-num text-lg font-bold">{fmt(cost.week.copay)}</td>
-                  <td className="px-4 py-3 text-right font-num text-lg font-bold">{fmt(cost.month.copay)}</td>
+                  <LabelCell className="font-semibold">ผู้ป่วยชำระส่วนต่างเพิ่ม</LabelCell>
+                  <MoneyCell value={cost.week.copay} className="text-base font-bold sm:text-lg" />
+                  <MoneyCell value={cost.month.copay} className="text-base font-bold sm:text-lg" />
                 </tr>
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-muted-foreground">
-            หน่วย: บาท · ส่วนต่าง = max(0, ราคา รพ. − เพดานเบิก) × จำนวนหน่วย
-            {cost.capAboveHospPrice && " · เพดานเบิกสูงกว่าราคา รพ. จึงไม่มีส่วนต่าง"}
-          </p>
         </Card>
       )}
 

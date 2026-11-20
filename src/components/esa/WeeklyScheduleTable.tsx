@@ -1,4 +1,4 @@
-import { CalendarDays, Repeat } from "lucide-react";
+import { Repeat } from "lucide-react";
 import { Fragment } from "react";
 
 import { Segmented } from "@/components/esa/Segmented";
@@ -165,12 +165,6 @@ export function WeeklyScheduleTable({
         </table>
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        <span className="inline-flex items-start gap-1">
-          <CalendarDays className="mt-px size-3.5 shrink-0" /> สูตร: {plan.regimenText}
-        </span>
-        {plan.alternative && <span>· ทางเลือก: {plan.alternative}</span>}
-      </div>
     </div>
   );
 }
