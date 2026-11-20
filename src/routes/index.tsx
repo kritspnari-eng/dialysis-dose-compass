@@ -38,15 +38,16 @@ export const Route = createFileRoute("/")({
 
 function parseForm(f: FormState): { input?: PatientInput; errors: string[] } {
   const n = (v: string) => (v.trim() === "" ? NaN : Number(v));
+  const opt = (v: string) => (v.trim() === "" ? null : Number(v));
   const errors: string[] = [];
   const weight = n(f.Dry_Weight_kg);
   const hb = n(f.Current_Hb);
-  const tsat = n(f.TSAT_Percent);
-  const ferritin = n(f.Ferritin_ng_mL);
+  const tsat = opt(f.TSAT_Percent);
+  const ferritin = opt(f.Ferritin_ng_mL);
   if (!(weight > 0)) errors.push("กรุณากรอกน้ำหนักแห้ง");
   if (!(hb > 0)) errors.push("กรุณากรอก Current Hb");
-  if (!(tsat >= 0)) errors.push("กรุณากรอก TSAT");
-  if (!(ferritin >= 0)) errors.push("กรุณากรอก Ferritin");
+  if (tsat !== null && !(tsat >= 0)) errors.push("TSAT ต้องเป็นต้วเลือดตังแต่ 0 ขึ้ไป");
+  if (ferritin !== null && !(ferritin >= 0)) errors.push("Ferritin ต้องเป็นต้วเลือดตังแต่ 0 ขึ้ไป");
   if (!f.Is_New_Case && !(n(f.Prev_Weekly_Dose_IU) > 0))
     errors.push("เคสติดตามอาการ กรุณากรอกขนาดยาเดิมต่อสัปดาห์");
   if (errors.length) return { errors };
@@ -56,7 +57,7 @@ function parseForm(f: FormState): { input?: PatientInput; errors: string[] } {
       Patient_Right: f.Patient_Right,
       Is_New_Case: f.Is_New_Case,
       Selected_Drug_ID: f.Selected_Drug_ID,
-      Route: f.Route,
+      Route: "IV",
       Dialysis_Freq: f.Dialysis_Freq,
       Dry_Weight_kg: weight,
       Current_Hb: hb,

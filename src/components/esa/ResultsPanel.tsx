@@ -72,7 +72,11 @@ export function EmptyResults() {
   );
 }
 
-const IRON_STYLE: Record<IronStatus, { box: string; badge: "ineligible" | "caution" | "eligible" }> = {
+const IRON_STYLE: Record<IronStatus, { box: string; badge: "ineligible" | "caution" | "eligible" | "secondary" }> = {
+  unknown: {
+    box: "border-border bg-muted text-muted-foreground",
+    badge: "secondary",
+  },
   deficient: {
     box: "border-warning-border bg-warning-surface text-warning-foreground",
     badge: "ineligible",
@@ -99,7 +103,8 @@ function IronStatusCard({ input }: { input: PatientInput }) {
       </div>
       <p>{iron.advice}</p>
       <p className="text-xs opacity-80">
-        TSAT {input.TSAT_Percent}% · Ferritin {input.Ferritin_ng_mL} ng/mL
+        TSAT {input.TSAT_Percent === null ? "ไม่มีข้อมูล" : `${fmt(input.TSAT_Percent)}%`} · Ferritin{" "}
+        {input.Ferritin_ng_mL === null ? "ไม่มีข้อมูล" : `${fmt(input.Ferritin_ng_mL)} ng/mL`}
       </p>
     </section>
   );
@@ -161,7 +166,7 @@ export function ResultsPanel({
                 {overridden ? "ปรับเองโดยผู้สั่งยา" : ACTION_LABEL[rec.action]}
               </Badge>
               <Badge variant="sky">
-                {drug.Brand_Name} {fmt(drug.Strength_IU)} IU · {drug.Dosage_Form} · {input.Route}
+                {drug.Brand_Name} {fmt(drug.Strength_IU)} IU · {drug.Dosage_Form} · Route: {input.Route}
               </Badge>
               {perKg !== null && <span className="text-xs text-muted-foreground">≈ {perKg} IU/kg/wk</span>}
             </div>

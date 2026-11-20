@@ -284,7 +284,7 @@ export const missingLookupMessage = (freq: DialysisFreq) =>
 
 /* ---------------------------------------------------------- Iron status */
 
-export type IronStatus = "deficient" | "high" | "adequate";
+export type IronStatus = "unknown" | "deficient" | "high" | "adequate";
 
 export interface IronAssessment {
   status: IronStatus;
@@ -296,6 +296,7 @@ export interface IronAssessment {
 
 /**
  * HD iron-status criteria:
+ * - unknown: TSAT or Ferritin not entered → no iron advice this round
  * - deficient: TSAT < 20% or Ferritin < 200 ng/mL → consider IV iron
  * - high: Ferritin > 500 ng/mL or TSAT > 30% → hold IV iron
  * - adequate: TSAT 20–30% and Ferritin 200–500 ng/mL → maintenance per unit protocol
@@ -303,6 +304,17 @@ export interface IronAssessment {
 export function ironAssessment(
   p: Pick<PatientInput, "TSAT_Percent" | "Ferritin_ng_mL">,
 ): IronAssessment {
+  if (p.TSAT_Percent === null || p.Ferritin_ng_mL === null) {
+    const missing = [p.TSAT_Percent === null ? "TSAT" : "", p.Ferritin_ng_mL === null ? "Ferritin" : ""]
+      .filter(Boolean)
+      .join(" และ ");
+    return {
+      status: "unknown",
+      title: "ไม่มีผลตรวจธาตุเหล็กในรอบนี้",
+      advice: `ยัังไม่ได้กรอกข้อมูล ${missing} จึงไม่สามารถประเมินสถานะธาตุเหล็กได้ ระบบยัังคำนวณขนาดยา ESA ตามปกติ`,
+      note: "ไม่มีผลตรวจธาตุเหล็กในรอบนี้ → ยัังไม่สามารถแนะนำการให้ IV Iron",
+    };
+  }
   if (p.TSAT_Percent < 20 || p.Ferritin_ng_mL < 200) {
     return {
       status: "deficient",

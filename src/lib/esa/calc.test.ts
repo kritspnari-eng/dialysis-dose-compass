@@ -14,6 +14,7 @@ import {
   stepDose,
   unitCopay,
 } from "./calc";
+import { buildCopyNote } from "./note";
 
 const drug = (id: string) => DRUGS.find((d) => d.Drug_ID === id)!;
 const pattern = (freq: "2 ครั้ง/wk" | "3 ครั้ง/wk", id: string) =>
@@ -72,6 +73,64 @@ describe("iron status assessment", () => {
     expect(ironAssessment({ TSAT_Percent: 20, Ferritin_ng_mL: 200 }).status).toBe("adequate");
     expect(ironAssessment({ TSAT_Percent: 30, Ferritin_ng_mL: 500 }).status).toBe("adequate");
     expect(ironAssessment({ TSAT_Percent: 25, Ferritin_ng_mL: 350 }).note).toContain("Maintenance");
+  });
+});
+
+describe("iron labs are optional", () => {
+  const base = SAMPLE_CASES[0]!.input;
+  it("blank TSAT and Ferritin → 'ไม่มีผลตรวจธาตุเหล็กในรอบนี้'", () => {
+    const a = ironAssessment({ TSAT_Percent: null, Ferritin_ng_mL: null });
+    expect(a.status).toBe("unknown");
+    expect(a.title).toBe("ไม่มีผลตรวจธาตุเหล็กในรอบนี้");
+    expect(a.note).toContain("ไม่มีผลตรวจธาตุเหล็กในรอบนี้");
+  });
+  it("only one value missing is still unknown", () => {
+    expect(ironAssessment({ TSAT_Percent: 25, Ferritin_ng_mL: null }).status).toBe("unknown");
+    expect(ironAssessment({ TSAT_Percent: null, Ferritin_ng_mL: 150 }).status).toBe("unknown");
+  });
+  it("ESA dose is unchanged when the iron labs are blank", () => {
+    const d = drug(base.Selected_Drug_ID);
+    expect(recommendDose({ ...base, TSAT_Percent: null, Ferritin_ng_mL: null }, d).dose).toBe(
+      recommendDose(base, d).dose,
+    );
+  });
+  it("copy note keeps Route: IV and flags the missing iron result", () => {
+    const input = { ...base, TSAT_Percent: null, Ferritin_ng_mL: null };
+    const d = drug(input.Selected_Drug_ID);
+    const rec = recommendDose(input, d);
+    const p = pattern("2 ครั้ง/wk", "mon-thu");
+    const plan = buildPlan(rec.dose, d, input.Dialysis_Freq, p)!;
+    const note = buildCopyNote({
+      input,
+      drug: d,
+      rec,
+      dose: rec.dose,
+      overridden: false,
+      pattern: p,
+      plan,
+      cost: costSummary(d, input.Patient_Right, plan.avgWeeklyUnits),
+    });
+    expect(note).toContain("Route: IV");
+    expect(note).toContain("TSAT ไม่มีข้อมูล · Ferritin ไม่มีข้อมูล");
+    expect(note).toContain("สถานะธาตุเหล็ก: ไม่มีผลตรวจธาตุเหล็กในรอบนี้");
+  });
+  it("copy note shows the iron advice when the labs are filled in", () => {
+    const d = drug(base.Selected_Drug_ID);
+    const rec = recommendDose(base, d);
+    const p = pattern("2 ครั้ง/wk", "mon-thu");
+    const plan = buildPlan(rec.dose, d, base.Dialysis_Freq, p)!;
+    const note = buildCopyNote({
+      input: base,
+      drug: d,
+      rec,
+      dose: rec.dose,
+      overridden: false,
+      pattern: p,
+      plan,
+      cost: costSummary(d, base.Patient_Right, plan.avgWeeklyUnits),
+    });
+    expect(note).toContain("TSAT 18% · Ferritin 150 ng/mL");
+    expect(note).toContain("ควรพิจารณาให้ IV Iron");
   });
 });
 

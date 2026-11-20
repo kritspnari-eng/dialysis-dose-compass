@@ -40,8 +40,8 @@ export interface PatientInput {
   Previous_Hb: number;
   Current_Hct: number;
   Prev_Weekly_Dose_IU: number;
-  TSAT_Percent: number;
-  Ferritin_ng_mL: number;
+  TSAT_Percent: number | null;
+  Ferritin_ng_mL: number | null;
 }
 
 export const DRUGS: Drug[] = [

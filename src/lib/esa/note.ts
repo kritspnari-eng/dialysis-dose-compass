@@ -31,12 +31,14 @@ export function buildCopyNote(a: NoteArgs): string {
   const unit = unitName(drug.Dosage_Form);
   const L: string[] = [];
 
-  L.push(`[ESA Order] ${drug.Brand_Name} ${fmtIU(drug.Strength_IU)} (${drug.Dosage_Form}) · ${p.Route}`);
+  L.push(`[ESA Order] ${drug.Brand_Name} ${fmtIU(drug.Strength_IU)} (${drug.Dosage_Form}) · Route: ${p.Route}`);
   L.push(
     `สิทธิ: ${RIGHT_LABELS[p.Patient_Right]} · ${p.Is_New_Case ? "เคสใหม่" : "เคสติดตามอาการ"} · น้ำหนักแห้ง ${fmt(p.Dry_Weight_kg)} kg`,
   );
+  const tsatText = p.TSAT_Percent === null ? "ไม่มีข้อมูล" : `${p.TSAT_Percent}%`;
+  const ferritinText = p.Ferritin_ng_mL === null ? "ไม่มีข้อมูล" : `${p.Ferritin_ng_mL} ng/mL`;
   L.push(
-    `Lab: Hb ${p.Current_Hb} g/dL${!p.Is_New_Case && p.Previous_Hb > 0 ? ` (เดิม ${p.Previous_Hb})` : ""} · Hct ${p.Current_Hct}% · TSAT ${p.TSAT_Percent}% · Ferritin ${p.Ferritin_ng_mL} ng/mL`,
+    `Lab: Hb ${p.Current_Hb} g/dL${!p.Is_New_Case && p.Previous_Hb > 0 ? ` (เดิม ${p.Previous_Hb})` : ""} · Hct ${p.Current_Hct}% · TSAT ${tsatText} · Ferritin ${ferritinText}`,
   );
   const perKg = p.Dry_Weight_kg > 0 ? ` (≈${Math.round(dose / p.Dry_Weight_kg)} IU/kg/wk)` : "";
   const prev = !p.Is_New_Case && p.Prev_Weekly_Dose_IU > 0 ? ` · เดิม ${fmtIU(p.Prev_Weekly_Dose_IU)}` : "";
@@ -81,7 +83,9 @@ export function buildCopyNote(a: NoteArgs): string {
   const iron = ironAssessment(p);
   L.push("");
   L.push(
-    `สถานะธาตุเหล็ก: TSAT ${p.TSAT_Percent}% · Ferritin ${p.Ferritin_ng_mL} ng/mL → ${iron.note}`,
+    iron.status === "unknown"
+      ? `สถานะธาตุเหล็ก: ${iron.title} → ยัังไม่สามารถแนะนำการให้ IV Iron`
+      : `สถานะธาตุเหล็ก: TSAT ${tsatText} · Ferritin ${ferritinText} → ${iron.note}`,
   );
   return L.join("\n");
 }

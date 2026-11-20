@@ -20,7 +20,6 @@ import {
   type DialysisFreq,
   type PatientInput,
   type PatientRight,
-  type Route,
 } from "@/lib/esa/data";
 
 export type NumField =
@@ -41,8 +40,8 @@ export const toFormState = (p: PatientInput): FormState => ({
   Previous_Hb: p.Is_New_Case ? "" : String(p.Previous_Hb),
   Current_Hct: String(p.Current_Hct),
   Prev_Weekly_Dose_IU: String(p.Prev_Weekly_Dose_IU),
-  TSAT_Percent: String(p.TSAT_Percent),
-  Ferritin_ng_mL: String(p.Ferritin_ng_mL),
+  TSAT_Percent: p.TSAT_Percent === null ? "" : String(p.TSAT_Percent),
+  Ferritin_ng_mL: p.Ferritin_ng_mL === null ? "" : String(p.Ferritin_ng_mL),
 });
 
 export const EMPTY_FORM: FormState = {
@@ -80,6 +79,7 @@ function NumberInput({
   onChange,
   disabled,
   step = "0.1",
+  optional = false,
 }: {
   id: string;
   label: string;
@@ -88,11 +88,13 @@ function NumberInput({
   onChange: (v: string) => void;
   disabled?: boolean;
   step?: string;
+  optional?: boolean;
 }) {
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id} className="text-xs text-muted-foreground">
         {label}
+        {optional && <span className="ml-1 font-normal opacity-70">(ไม่ต้องกรอก)</span>}
       </Label>
       <div className="relative">
         <Input
@@ -102,7 +104,7 @@ function NumberInput({
           step={step}
           min={0}
           value={disabled ? "" : value}
-          placeholder={disabled ? "ไม่ใช้ในเคสใหม่" : ""}
+          placeholder={disabled ? "ไม่ใช้ในเคสใหม่" : optional ? "เว้นว่างได้" : ""}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
           className="h-10 bg-card pr-16 font-num text-base"
@@ -176,18 +178,6 @@ export function PatientForm({
             value={form.Dry_Weight_kg}
             onChange={(v) => set("Dry_Weight_kg", v)}
           />
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">ช่องทางบริหารยา</Label>
-            <Segmented
-              ariaLabel="ช่องทางบริหารยา"
-              value={form.Route}
-              onChange={(v) => set("Route", v as Route)}
-              options={[
-                { value: "IV", label: "IV" },
-                { value: "SC", label: "SC" },
-              ]}
-            />
-          </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs text-muted-foreground">ความถี่การฟอกเลือด</Label>
             <Segmented
@@ -269,16 +259,27 @@ export function PatientForm({
             onChange={(v) => set("Prev_Weekly_Dose_IU", v)}
             disabled={form.Is_New_Case}
           />
-          <NumberInput id="tsat" label="TSAT" unit="%" value={form.TSAT_Percent} onChange={(v) => set("TSAT_Percent", v)} />
+          <NumberInput
+            id="tsat"
+            label="%TSAT"
+            unit="%"
+            optional
+            value={form.TSAT_Percent}
+            onChange={(v) => set("TSAT_Percent", v)}
+          />
           <NumberInput
             id="ferritin"
             label="Ferritin"
             unit="ng/mL"
             step="1"
+            optional
             value={form.Ferritin_ng_mL}
             onChange={(v) => set("Ferritin_ng_mL", v)}
           />
         </div>
+        <p className="text-xs text-muted-foreground">
+          %TSAT และ Ferritin จะเว้นว่างได้ ระบบยัังคำนวณขนาดยา ESA ตามปกติ และจะแสดงว่า “ไม่มีผลตรวจธาตุเหล็กในรอบนี้”
+        </p>
       </Section>
 
       {errors.length > 0 && (
