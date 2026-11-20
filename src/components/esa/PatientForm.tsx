@@ -104,14 +104,16 @@ function NumberInput({
           step={step}
           min={0}
           value={disabled ? "" : value}
-          placeholder={disabled ? "ไม่ใช้ในเคสใหม่" : optional ? "เว้นว่างได้" : ""}
+          placeholder={disabled ? "ไม่ใช้เคสใหม่" : optional ? "เว้นว่าง" : ""}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className="h-10 bg-card pr-16 font-num text-base"
+          className={`h-10 bg-card font-num text-base ${disabled ? "pr-3" : "pr-12 sm:pr-16"}`}
         />
-        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
-          {unit}
-        </span>
+        {!disabled && (
+          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+            {unit}
+          </span>
+        )}
       </div>
     </div>
   );
