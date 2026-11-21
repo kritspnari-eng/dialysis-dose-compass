@@ -77,7 +77,6 @@ function NumberInput({
   unit,
   value,
   onChange,
-  disabled,
   step = "0.1",
   optional = false,
 }: {
@@ -86,7 +85,6 @@ function NumberInput({
   unit: string;
   value: string;
   onChange: (v: string) => void;
-  disabled?: boolean;
   step?: string;
   optional?: boolean;
 }) {
@@ -103,17 +101,14 @@ function NumberInput({
           inputMode="decimal"
           step={step}
           min={0}
-          value={disabled ? "" : value}
-          placeholder={disabled ? "ไม่ใช้เคสใหม่" : optional ? "เว้นว่าง" : ""}
-          disabled={disabled}
+          value={value}
+          placeholder={optional ? "เว้นว่าง" : ""}
           onChange={(e) => onChange(e.target.value)}
-          className={`h-10 bg-card font-num text-base ${disabled ? "pr-3" : "pr-12 sm:pr-16"}`}
+          className="h-10 bg-card pr-12 font-num text-base sm:pr-16"
         />
-        {!disabled && (
-          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
-            {unit}
-          </span>
-        )}
+        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+          {unit}
+        </span>
       </div>
     </div>
   );
@@ -173,13 +168,15 @@ export function PatientForm({
               ]}
             />
           </div>
-          <NumberInput
-            id="weight"
-            label="น้ำหนักแห้ง (Dry weight)"
-            unit="kg"
-            value={form.Dry_Weight_kg}
-            onChange={(v) => set("Dry_Weight_kg", v)}
-          />
+          {form.Is_New_Case && (
+            <NumberInput
+              id="weight"
+              label="น้ำหนักแห้ง (Dry weight)"
+              unit="kg"
+              value={form.Dry_Weight_kg}
+              onChange={(v) => set("Dry_Weight_kg", v)}
+            />
+          )}
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs text-muted-foreground">ความถี่การฟอกเลือด</Label>
             <Segmented
@@ -243,24 +240,26 @@ export function PatientForm({
       <Section icon={<FlaskConical />} title="ผลแล็บและขนาดยาเดิม">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <NumberInput id="hb" label="Current Hb" unit="g/dL" value={form.Current_Hb} onChange={(v) => set("Current_Hb", v)} />
-          <NumberInput
-            id="prevhb"
-            label="Previous Hb"
-            unit="g/dL"
-            value={form.Previous_Hb}
-            onChange={(v) => set("Previous_Hb", v)}
-            disabled={form.Is_New_Case}
-          />
+          {!form.Is_New_Case && (
+            <NumberInput
+              id="prevhb"
+              label="Previous Hb"
+              unit="g/dL"
+              value={form.Previous_Hb}
+              onChange={(v) => set("Previous_Hb", v)}
+            />
+          )}
           <NumberInput id="hct" label="Current Hct" unit="%" value={form.Current_Hct} onChange={(v) => set("Current_Hct", v)} />
-          <NumberInput
-            id="prevdose"
-            label="ขนาดยาเดิม/สัปดาห์"
-            unit="IU"
-            step="1000"
-            value={form.Prev_Weekly_Dose_IU}
-            onChange={(v) => set("Prev_Weekly_Dose_IU", v)}
-            disabled={form.Is_New_Case}
-          />
+          {!form.Is_New_Case && (
+            <NumberInput
+              id="prevdose"
+              label="ขนาดยาเดิม/สัปดาห์"
+              unit="IU"
+              step="1000"
+              value={form.Prev_Weekly_Dose_IU}
+              onChange={(v) => set("Prev_Weekly_Dose_IU", v)}
+            />
+          )}
           <NumberInput
             id="tsat"
             label="%TSAT"

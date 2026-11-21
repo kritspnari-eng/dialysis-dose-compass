@@ -44,7 +44,7 @@ function parseForm(f: FormState): { input?: PatientInput; errors: string[] } {
   const hb = n(f.Current_Hb);
   const tsat = opt(f.TSAT_Percent);
   const ferritin = opt(f.Ferritin_ng_mL);
-  if (!(weight > 0)) errors.push("กรุณากรอกน้ำหนักแห้ง");
+  if (f.Is_New_Case && !(weight > 0)) errors.push("กรุณากรอกน้ำหนักแห้ง");
   if (!(hb > 0)) errors.push("กรุณากรอก Current Hb");
   if (tsat !== null && !(tsat >= 0)) errors.push("TSAT ต้องเป็นต้วเลือดตังแต่ 0 ขึ้ไป");
   if (ferritin !== null && !(ferritin >= 0)) errors.push("Ferritin ต้องเป็นต้วเลือดตังแต่ 0 ขึ้ไป");
@@ -59,7 +59,7 @@ function parseForm(f: FormState): { input?: PatientInput; errors: string[] } {
       Selected_Drug_ID: f.Selected_Drug_ID,
       Route: "IV",
       Dialysis_Freq: f.Dialysis_Freq,
-      Dry_Weight_kg: weight,
+      Dry_Weight_kg: f.Is_New_Case ? weight : 0,
       Current_Hb: hb,
       Previous_Hb: f.Is_New_Case ? 0 : n(f.Previous_Hb) || 0,
       Current_Hct: n(f.Current_Hct) || 0,

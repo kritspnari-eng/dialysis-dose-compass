@@ -33,7 +33,7 @@ export function buildCopyNote(a: NoteArgs): string {
 
   L.push(`[ESA Order] ${drug.Brand_Name} ${fmtIU(drug.Strength_IU)} (${drug.Dosage_Form}) · Route: ${p.Route}`);
   L.push(
-    `สิทธิ: ${RIGHT_LABELS[p.Patient_Right]} · ${p.Is_New_Case ? "เคสใหม่" : "เคสติดตามอาการ"} · น้ำหนักแห้ง ${fmt(p.Dry_Weight_kg)} kg`,
+    `สิทธิ: ${RIGHT_LABELS[p.Patient_Right]} · ${p.Is_New_Case ? "เคสใหม่" : "เคสติดตามอาการ"}${p.Dry_Weight_kg > 0 ? ` · น้ำหนักแห้ง ${fmt(p.Dry_Weight_kg)} kg` : ""}`,
   );
   const tsatText = p.TSAT_Percent === null ? "ไม่มีข้อมูล" : `${p.TSAT_Percent}%`;
   const ferritinText = p.Ferritin_ng_mL === null ? "ไม่มีข้อมูล" : `${p.Ferritin_ng_mL} ng/mL`;
