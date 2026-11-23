@@ -31,13 +31,10 @@ export interface DosingRow {
 
 export interface PatientInput {
   Patient_Right: PatientRight;
-  Is_New_Case: boolean;
-  Dry_Weight_kg: number;
   Selected_Drug_ID: string;
   Route: Route;
   Dialysis_Freq: DialysisFreq;
   Current_Hb: number;
-  Previous_Hb: number;
   Current_Hct: number;
   Prev_Weekly_Dose_IU: number;
   TSAT_Percent: number | null;
@@ -101,19 +98,19 @@ export interface SampleCase {
 
 export const SAMPLE_CASES: SampleCase[] = [
   {
-    label: "เคส 1 · UC ติดตามอาการ",
+    label: "เคส 1 · UC Hb 9.5",
     expectedFinalWeeklyDose: 6000,
-    input: { Patient_Right: "UC", Is_New_Case: false, Dry_Weight_kg: 55, Selected_Drug_ID: "EPO-01", Route: "IV", Dialysis_Freq: "2 ครั้ง/wk", Current_Hb: 9.5, Previous_Hb: 9.2, Current_Hct: 28.5, Prev_Weekly_Dose_IU: 4000, TSAT_Percent: 18, Ferritin_ng_mL: 150 },
+    input: { Patient_Right: "UC", Selected_Drug_ID: "EPO-01", Route: "IV", Dialysis_Freq: "2 ครั้ง/wk", Current_Hb: 9.5, Current_Hct: 28.5, Prev_Weekly_Dose_IU: 4000, TSAT_Percent: 18, Ferritin_ng_mL: 150 },
   },
   {
-    label: "เคส 2 · SSS ติดตามอาการ",
+    label: "เคส 2 · SSS Hb 11.8",
     expectedFinalWeeklyDose: 6000,
-    input: { Patient_Right: "SSS", Is_New_Case: false, Dry_Weight_kg: 62.5, Selected_Drug_ID: "EPO-02", Route: "IV", Dialysis_Freq: "3 ครั้ง/wk", Current_Hb: 11.8, Previous_Hb: 10.5, Current_Hct: 36.5, Prev_Weekly_Dose_IU: 8000, TSAT_Percent: 28, Ferritin_ng_mL: 420 },
+    input: { Patient_Right: "SSS", Selected_Drug_ID: "EPO-02", Route: "IV", Dialysis_Freq: "3 ครั้ง/wk", Current_Hb: 11.8, Current_Hct: 36.5, Prev_Weekly_Dose_IU: 8000, TSAT_Percent: 28, Ferritin_ng_mL: 420 },
   },
   {
-    label: "เคส 3 · OFC เคสใหม่",
-    expectedFinalWeeklyDose: 4000,
-    input: { Patient_Right: "OFC", Is_New_Case: true, Dry_Weight_kg: 50, Selected_Drug_ID: "EPO-05", Route: "IV", Dialysis_Freq: "2 ครั้ง/wk", Current_Hb: 8.8, Previous_Hb: 0, Current_Hct: 26.4, Prev_Weekly_Dose_IU: 0, TSAT_Percent: 25, Ferritin_ng_mL: 310 },
+    label: "เคส 3 · OFC Hb 8.8",
+    expectedFinalWeeklyDose: 8000,
+    input: { Patient_Right: "OFC", Selected_Drug_ID: "EPO-05", Route: "IV", Dialysis_Freq: "2 ครั้ง/wk", Current_Hb: 8.8, Current_Hct: 26.4, Prev_Weekly_Dose_IU: 4000, TSAT_Percent: 25, Ferritin_ng_mL: 310 },
   },
 ];
 

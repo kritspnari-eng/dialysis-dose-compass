@@ -5,6 +5,7 @@ import {
   Droplets,
   Minus,
   Plus,
+  Printer,
   RotateCcw,
   Stethoscope,
   Wallet,
@@ -158,8 +159,6 @@ export function ResultsPanel({
   cost: CostSummary | null;
   note: string;
 }) {
-  const perKg = input.Dry_Weight_kg > 0 ? Math.round(dose / input.Dry_Weight_kg) : null;
-
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(note);
@@ -183,13 +182,12 @@ export function ResultsPanel({
               <span className="ml-2 text-xl font-semibold text-muted-foreground">IU/wk</span>
             </p>
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              <Badge variant={overridden ? "ineligible" : "mint"}>
+              <Badge variant={overridden || rec.action === "hold" ? "ineligible" : "mint"}>
                 {overridden ? "ปรับเองโดยผู้สั่งยา" : ACTION_LABEL[rec.action]}
               </Badge>
               <Badge variant="sky">
                 {drug.Brand_Name} {fmt(drug.Strength_IU)} IU · {drug.Dosage_Form} · Route: {input.Route}
               </Badge>
-              {perKg !== null && <span className="text-xs text-muted-foreground">≈ {perKg} IU/kg/wk</span>}
             </div>
             <p className="text-sm text-muted-foreground">{rec.reason}</p>
           </div>
@@ -208,7 +206,7 @@ export function ResultsPanel({
             </div>
             {overridden && (
               <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={onReset}>
-                <RotateCcw /> กลับไปใช้ {fmt(rec.dose)} IU
+                <RotateCcw /> {rec.dose > 0 ? `กลับไปใช้ ${fmt(rec.dose)} IU` : "กลับไปหยุดยา"}
               </Button>
             )}
           </div>
@@ -306,6 +304,9 @@ export function ResultsPanel({
       <section className="panel space-y-3 p-5 sm:p-6">
         <Button type="button" variant="mint" size="xl" className="w-full" onClick={copy}>
           <ClipboardCopy /> คัดลอกสรุปคำสั่งยา (Copy Note)
+        </Button>
+        <Button type="button" variant="outline" size="xl" className="w-full" onClick={() => window.print()}>
+          <Printer /> พิมพ์ใบติดตาม 6 เดือน (A4 / PDF)
         </Button>
         <details className="group">
           <summary className="cursor-pointer text-xs font-medium text-muted-foreground">

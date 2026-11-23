@@ -31,6 +31,7 @@ use the editor.
 
 ## Project rules
 
-- ESA reference data (drugs, dosing lookup, sample cases) lives as typed constants in `src/lib/esa/data.ts`, transcribed from the user's CSVs; update it there when the CSVs change — no backend needed for static reference tables.
+- ESA reference data (drugs, dosing lookup, test sample cases) lives as typed constants in `src/lib/esa/data.ts`, transcribed from the user's CSVs; update it there when the CSVs change — no backend needed for static reference tables.
 - All clinical/cost rules are pure functions in `src/lib/esa/calc.ts` with tests in `calc.test.ts`; UI components only render their output, so rules stay testable.
 - Vial schedules come from the per-week vial table `VIAL_WEEK_PLANS` in `calc.ts` (whole vials, weeks grouped into variants), not the CSV regimen text, because the user forbids split vials; PFS schedules still parse `Suggested_Regimen` and map each dose to the same 1st/2nd/3rd dialysis-day slot in the selected pattern.
+- The printable A4 follow-up sheet is its own component (`PrintSheet.tsx`) shown only under `print:` while the app UI is `print:hidden`, so the screen layout and the paper layout never constrain each other.

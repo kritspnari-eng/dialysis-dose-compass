@@ -26,6 +26,34 @@ describe("sample cases", () => {
   });
 });
 
+describe("dose adjusts from current Hb only", () => {
+  const base = SAMPLE_CASES[0]!.input; // EPIAO vial, previous 4,000 IU/wk
+  const d = drug(base.Selected_Drug_ID);
+  const at = (hb: number) => recommendDose({ ...base, Current_Hb: hb }, d);
+
+  it("Hb < 10.0 → increase 25% (4,000 → 5,000 → next whole-vial step 6,000)", () => {
+    expect(at(9.9)).toMatchObject({ action: "increase", rawDose: 5000, dose: 6000 });
+  });
+  it("Hb 10.0–11.5 → keep the same dose", () => {
+    expect(at(10.0)).toMatchObject({ action: "maintain", dose: 4000 });
+    expect(at(11.5)).toMatchObject({ action: "maintain", dose: 4000 });
+  });
+  it("Hb 11.6–12.9 → decrease 25%", () => {
+    expect(at(11.6)).toMatchObject({ action: "decrease", rawDose: 3000, dose: 3000 });
+    expect(at(12.9)).toMatchObject({ action: "decrease", rawDose: 3000, dose: 3000 });
+  });
+  it("Hb ≥ 13.0 → stop ESA (0 IU/wk, no injections, no vials)", () => {
+    expect(at(13.0)).toMatchObject({ action: "hold", dose: 0 });
+    const plan = buildPlan(0, d, "2 ครั้ง/wk", pattern("2 ครั้ง/wk", "mon-thu"))!;
+    expect(plan.monthTotal).toMatchObject({ dose: 0, units: 0 });
+    expect(Object.values(plan.variants[0]!.schedule).every((iu) => iu === null)).toBe(true);
+  });
+  it("stepping up from a stopped dose goes to the smallest deliverable dose", () => {
+    expect(stepDose(0, d, 1)).toBe(2000);
+    expect(stepDose(0, drug("EPO-06"), 1)).toBe(5000);
+  });
+});
+
 describe("PFS doses are multiples of Strength_IU", () => {
   it("4,000 IU PFS rounds to 4,000 / 8,000 / 12,000", () => {
     const d = drug("EPO-05");

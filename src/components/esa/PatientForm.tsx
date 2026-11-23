@@ -23,9 +23,7 @@ import {
 } from "@/lib/esa/data";
 
 export type NumField =
-  | "Dry_Weight_kg"
   | "Current_Hb"
-  | "Previous_Hb"
   | "Current_Hct"
   | "Prev_Weekly_Dose_IU"
   | "TSAT_Percent"
@@ -35,9 +33,7 @@ export type FormState = Omit<PatientInput, NumField> & Record<NumField, string>;
 
 export const toFormState = (p: PatientInput): FormState => ({
   ...p,
-  Dry_Weight_kg: String(p.Dry_Weight_kg),
   Current_Hb: String(p.Current_Hb),
-  Previous_Hb: p.Is_New_Case ? "" : String(p.Previous_Hb),
   Current_Hct: String(p.Current_Hct),
   Prev_Weekly_Dose_IU: String(p.Prev_Weekly_Dose_IU),
   TSAT_Percent: p.TSAT_Percent === null ? "" : String(p.TSAT_Percent),
@@ -46,13 +42,10 @@ export const toFormState = (p: PatientInput): FormState => ({
 
 export const EMPTY_FORM: FormState = {
   Patient_Right: "UC",
-  Is_New_Case: false,
   Selected_Drug_ID: "EPO-01",
   Route: "IV",
   Dialysis_Freq: "3 ครั้ง/wk",
-  Dry_Weight_kg: "",
   Current_Hb: "",
-  Previous_Hb: "",
   Current_Hct: "",
   Prev_Weekly_Dose_IU: "",
   TSAT_Percent: "",
@@ -157,27 +150,6 @@ export function PatientForm({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">ประเภทผู้ป่วย</Label>
-            <Segmented
-              ariaLabel="ประเภทผู้ป่วย"
-              value={form.Is_New_Case ? "new" : "fu"}
-              onChange={(v) => setForm({ ...form, Is_New_Case: v === "new" })}
-              options={[
-                { value: "new", label: "เคสใหม่" },
-                { value: "fu", label: "ติดตามอาการ" },
-              ]}
-            />
-          </div>
-          {form.Is_New_Case && (
-            <NumberInput
-              id="weight"
-              label="น้ำหนักแห้ง (Dry weight)"
-              unit="kg"
-              value={form.Dry_Weight_kg}
-              onChange={(v) => set("Dry_Weight_kg", v)}
-            />
-          )}
-          <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs text-muted-foreground">ความถี่การฟอกเลือด</Label>
             <Segmented
               ariaLabel="ความถี่การฟอกเลือด"
@@ -239,27 +211,16 @@ export function PatientForm({
 
       <Section icon={<FlaskConical />} title="ผลแล็บและขนาดยาเดิม">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <NumberInput id="hb" label="Current Hb" unit="g/dL" value={form.Current_Hb} onChange={(v) => set("Current_Hb", v)} />
-          {!form.Is_New_Case && (
-            <NumberInput
-              id="prevhb"
-              label="Previous Hb"
-              unit="g/dL"
-              value={form.Previous_Hb}
-              onChange={(v) => set("Previous_Hb", v)}
-            />
-          )}
+          <NumberInput id="hb" label="Hb ปัจจุบัน" unit="g/dL" value={form.Current_Hb} onChange={(v) => set("Current_Hb", v)} />
           <NumberInput id="hct" label="Current Hct" unit="%" value={form.Current_Hct} onChange={(v) => set("Current_Hct", v)} />
-          {!form.Is_New_Case && (
-            <NumberInput
-              id="prevdose"
-              label="ขนาดยาเดิม/สัปดาห์"
-              unit="IU"
-              step="1000"
-              value={form.Prev_Weekly_Dose_IU}
-              onChange={(v) => set("Prev_Weekly_Dose_IU", v)}
-            />
-          )}
+          <NumberInput
+            id="prevdose"
+            label="ขนาดยาเดิม/สัปดาห์"
+            unit="IU"
+            step="1000"
+            value={form.Prev_Weekly_Dose_IU}
+            onChange={(v) => set("Prev_Weekly_Dose_IU", v)}
+          />
           <NumberInput
             id="tsat"
             label="%TSAT"
@@ -278,6 +239,9 @@ export function PatientForm({
             onChange={(v) => set("Ferritin_ng_mL", v)}
           />
         </div>
+        <p className="rounded-lg bg-sky/60 px-3 py-2 text-xs text-sky-foreground">
+          ปรับขนาดยาจาก Hb ปัจจุบัน: &lt; 10.0 เพิ่ม 25% · 10.0–11.5 คงเดิม · 11.6–12.9 ลด 25% · ≥ 13.0 หยุดยา
+        </p>
         <p className="text-xs text-muted-foreground">
           %TSAT และ Ferritin จะเว้นว่างได้ ระบบยัังคำนวณขนาดยา ESA ตามปกติ และจะแสดงว่า “ไม่มีผลตรวจธาตุเหล็กในรอบนี้”
         </p>

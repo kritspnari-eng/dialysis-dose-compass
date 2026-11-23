@@ -199,6 +199,7 @@ export function roundToPackage(raw: number, drug: Drug, mode: Rounding = "neares
 
 /** Manual override step: next/previous deliverable dose. */
 export function stepDose(current: number, drug: Drug, dir: 1 | -1): number {
+  if (current <= 0) return dir === 1 ? roundToPackage(0, drug, "up") : 0;
   if (drug.Dosage_Form === "PFS") {
     const s = drug.Strength_IU;
     return Math.max(s, roundToPackage(current, drug) + dir * s);
@@ -207,7 +208,7 @@ export function stepDose(current: number, drug: Drug, dir: 1 | -1): number {
   return VIAL_DOSES[Math.min(VIAL_DOSES.length - 1, Math.max(0, i + dir))] ?? current;
 }
 
-export type DoseAction = "start" | "increase" | "decrease" | "maintain";
+export type DoseAction = "increase" | "decrease" | "maintain" | "hold";
 export interface Recommendation {
   dose: number;
   rawDose: number;
@@ -216,58 +217,45 @@ export interface Recommendation {
 }
 
 export const ACTION_LABEL: Record<DoseAction, string> = {
-  start: "เริ่มยา (เคสใหม่)",
   increase: "เพิ่มขนาดยา 25%",
   decrease: "ลดขนาดยา 25%",
   maintain: "คงขนาดยาเดิม",
+  hold: "หยุดยาชั่วคราว",
 };
 
+/**
+ * Adjusts the previous weekly dose from the current Hb only:
+ * Hb < 10.0 → +25% · 10.0–11.5 → keep · 11.6–12.9 → −25% · ≥ 13.0 → hold (0 IU).
+ */
 export function recommendDose(p: PatientInput, drug: Drug): Recommendation {
-  const startDose = (): Recommendation => {
-    const raw = p.Dry_Weight_kg * 90;
-    return {
-      dose: roundToPackage(raw, drug, "nearest"),
-      rawDose: raw,
-      action: "start",
-      reason: `เริ่มต้น 80–100 IU/kg/wk (${fmt(p.Dry_Weight_kg)} kg × 90 ≈ ${fmt(Math.round(raw))} IU)`,
-    };
-  };
-  if (p.Is_New_Case) return startDose();
-  if (!(p.Prev_Weekly_Dose_IU > 0)) {
-    const r = startDose();
-    return { ...r, reason: `ไม่มีขนาดยาเดิม จึงใช้สูตรเริ่มต้น: ${r.reason}` };
-  }
-
   const prev = p.Prev_Weekly_Dose_IU;
-  const rise = p.Previous_Hb > 0 ? p.Current_Hb - p.Previous_Hb : 0;
-  const riseText = p.Previous_Hb > 0 ? ` (เปลี่ยนแปลง ${rise >= 0 ? "+" : ""}${rise.toFixed(1)} g/dL)` : "";
-
-  if (p.Current_Hb > 11.5 || rise > 1.0) {
-    const raw = prev * 0.75;
-    return {
-      dose: roundToPackage(raw, drug, "down"),
-      rawDose: raw,
-      action: "decrease",
-      reason:
-        p.Current_Hb > 11.5
-          ? `Hb ${p.Current_Hb} g/dL สูงกว่า 11.5${riseText}`
-          : `Hb เพิ่มขึ้นเร็วเกิน 1.0 g/dL${riseText}`,
-    };
+  const hb = p.Current_Hb;
+  if (hb >= 13.0) {
+    return { dose: 0, rawDose: 0, action: "hold", reason: `Hb ${hb} g/dL ≥ 13.0 → หยุดยา ESA ชั่วคราว` };
   }
-  if (p.Current_Hb < 10.0 && rise < 1.0) {
+  if (hb < 10.0) {
     const raw = prev * 1.25;
     return {
       dose: roundToPackage(raw, drug, "up"),
       rawDose: raw,
       action: "increase",
-      reason: `Hb ${p.Current_Hb} g/dL ต่ำกว่า 10.0 และเพิ่มขึ้นน้อยกว่า 1.0 g/dL${riseText}`,
+      reason: `Hb ${hb} g/dL ต่ำกว่า 10.0 → เพิ่มขนาดยา 25% จาก ${fmtIU(prev)}`,
+    };
+  }
+  if (hb > 11.5) {
+    const raw = prev * 0.75;
+    return {
+      dose: roundToPackage(raw, drug, "down"),
+      rawDose: raw,
+      action: "decrease",
+      reason: `Hb ${hb} g/dL อยู่ในช่วง 11.6–12.9 → ลดขนาดยา 25% จาก ${fmtIU(prev)}`,
     };
   }
   return {
     dose: roundToPackage(prev, drug, "nearest"),
     rawDose: prev,
     action: "maintain",
-    reason: `Hb ${p.Current_Hb} g/dL อยู่ในช่วงเป้าหมาย 10.0–11.5${riseText}`,
+    reason: `Hb ${hb} g/dL อยู่ในช่วงเป้าหมาย 10.0–11.5 → คงขนาดยาเดิม`,
   };
 }
 
@@ -442,7 +430,11 @@ export function buildPlan(
   let alternative: string | undefined;
   let sourceRegimen: string | undefined;
 
-  if (drug.Dosage_Form === "Vial") {
+  if (dose <= 0) {
+    // ESA on hold: every week is a no-injection week.
+    weekly = [1, 2, 3, 4].map(() => ({ schedule: emptySchedule(), dose: 0, units: 0 }));
+    sourceRegimen = "หยุดยา ESA ชั่วคราว";
+  } else if (drug.Dosage_Form === "Vial") {
     const vials = VIAL_WEEK_PLANS[dose];
     if (!vials || Math.max(...vials) > freqCount(freq)) return null;
     weekly = vials.map((n) => {
@@ -491,11 +483,11 @@ export function buildPlan(
     dose: w.dose,
     units: w.units,
     note:
-      drug.Dosage_Form === "PFS"
-        ? `ใช้ ${fmt(w.units)} เข็ม (เข็มละ ${fmt(drug.Strength_IU)} IU)`
-        : w.units > 0
-          ? `เปิด ${w.units} ขวด · ฉีดครั้งละ ${fmt(drug.Strength_IU)} IU เต็มขวด`
-          : "งดฉีด · ไม่ต้องเปิดขวด",
+      w.units === 0
+        ? `งดฉีด · ไม่ต้องเปิด${unit}`
+        : drug.Dosage_Form === "PFS"
+          ? `ใช้ ${fmt(w.units)} เข็ม (เข็มละ ${fmt(drug.Strength_IU)} IU)`
+          : `เปิด ${w.units} ขวด · ฉีดครั้งละ ${fmt(drug.Strength_IU)} IU เต็มขวด`,
   }));
   const monthUnits = months.reduce((a, m) => a + m.units, 0);
   const monthDose = months.reduce((a, m) => a + m.dose, 0);
@@ -507,6 +499,10 @@ export function buildPlan(
     alternative,
     avgWeeklyUnits: monthUnits / 4,
     months,
-    monthTotal: { dose: monthDose, units: monthUnits, note: `เบิก ${fmt(monthUnits)} ${unit}` },
+    monthTotal: {
+      dose: monthDose,
+      units: monthUnits,
+      note: monthUnits > 0 ? `เบิก ${fmt(monthUnits)} ${unit}` : "ไม่ต้องเบิกยา",
+    },
   };
 }

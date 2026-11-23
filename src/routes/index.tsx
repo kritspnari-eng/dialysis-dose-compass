@@ -3,6 +3,7 @@ import { Activity } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { EMPTY_FORM, PatientForm, type FormState } from "@/components/esa/PatientForm";
+import { PrintSheet } from "@/components/esa/PrintSheet";
 import { EmptyResults, ResultsPanel } from "@/components/esa/ResultsPanel";
 import {
   DIALYSIS_PATTERNS,
@@ -40,30 +41,25 @@ function parseForm(f: FormState): { input?: PatientInput; errors: string[] } {
   const n = (v: string) => (v.trim() === "" ? NaN : Number(v));
   const opt = (v: string) => (v.trim() === "" ? null : Number(v));
   const errors: string[] = [];
-  const weight = n(f.Dry_Weight_kg);
   const hb = n(f.Current_Hb);
+  const prevDose = n(f.Prev_Weekly_Dose_IU);
   const tsat = opt(f.TSAT_Percent);
   const ferritin = opt(f.Ferritin_ng_mL);
-  if (f.Is_New_Case && !(weight > 0)) errors.push("กรุณากรอกน้ำหนักแห้ง");
-  if (!(hb > 0)) errors.push("กรุณากรอก Current Hb");
-  if (tsat !== null && !(tsat >= 0)) errors.push("TSAT ต้องเป็นต้วเลือดตังแต่ 0 ขึ้ไป");
-  if (ferritin !== null && !(ferritin >= 0)) errors.push("Ferritin ต้องเป็นต้วเลือดตังแต่ 0 ขึ้ไป");
-  if (!f.Is_New_Case && !(n(f.Prev_Weekly_Dose_IU) > 0))
-    errors.push("เคสติดตามอาการ กรุณากรอกขนาดยาเดิมต่อสัปดาห์");
+  if (!(hb > 0)) errors.push("กรุณากรอก Hb ปัจจุบัน");
+  if (!(prevDose > 0)) errors.push("กรุณากรอกขนาดยาเดิมต่อสัปดาห์");
+  if (tsat !== null && !(tsat >= 0)) errors.push("TSAT ต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป");
+  if (ferritin !== null && !(ferritin >= 0)) errors.push("Ferritin ต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป");
   if (errors.length) return { errors };
   return {
     errors,
     input: {
       Patient_Right: f.Patient_Right,
-      Is_New_Case: f.Is_New_Case,
       Selected_Drug_ID: f.Selected_Drug_ID,
       Route: "IV",
       Dialysis_Freq: f.Dialysis_Freq,
-      Dry_Weight_kg: f.Is_New_Case ? weight : 0,
       Current_Hb: hb,
-      Previous_Hb: f.Is_New_Case ? 0 : n(f.Previous_Hb) || 0,
       Current_Hct: n(f.Current_Hct) || 0,
-      Prev_Weekly_Dose_IU: f.Is_New_Case ? 0 : n(f.Prev_Weekly_Dose_IU),
+      Prev_Weekly_Dose_IU: prevDose,
       TSAT_Percent: tsat,
       Ferritin_ng_mL: ferritin,
     },
@@ -90,7 +86,7 @@ function Index() {
     if (!input) return null;
     const drug = DRUGS.find((d) => d.Drug_ID === input.Selected_Drug_ID)!;
     const rec = recommendDose(input, drug);
-    const dose = override !== null ? roundToPackage(override, drug) : rec.dose;
+    const dose = override === null ? rec.dose : override > 0 ? roundToPackage(override, drug) : 0;
     const patterns = DIALYSIS_PATTERNS[input.Dialysis_Freq];
     const pattern = patterns.find((p) => p.id === patternId) ?? patterns[0]!;
     const plan = buildPlan(dose, drug, input.Dialysis_Freq, pattern);
@@ -101,7 +97,8 @@ function Index() {
   }, [input, override, patternId]);
 
   return (
-    <div className="min-h-screen">
+    <>
+    <div className="min-h-screen print:hidden">
       <header className="border-b bg-card/80 backdrop-blur">
         <div className="mx-auto flex max-w-[1440px] items-center gap-3 px-4 py-4 sm:px-6">
           <div className="grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-lift">
@@ -159,5 +156,9 @@ function Index() {
         ผลการคำนวณเป็นเครื่องมือช่วยตัดสินใจ ผู้สั่งยาควรตรวจสอบความเหมาะสมทางคลินิกทุกครั้ง
       </footer>
     </div>
+    {input && result && (
+      <PrintSheet input={input} drug={result.drug} dose={result.dose} pattern={result.pattern} plan={result.plan} />
+    )}
+    </>
   );
 }
